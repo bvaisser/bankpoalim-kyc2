@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KYC Digital Update System — Presentation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #002a56; --navy2: #003f7f; --navy3: #1a5ca8;
+    --gold: #f0b429; --gold2: #fcd34d;
+    --green: #10b981; --green2: #34d399;
+    --red: #ef4444; --amber: #f59e0b; --purple: #8b5cf6;
+    --white: #ffffff; --off: #e2e8f0; --muted: #94a3b8;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  }
+  html, body { height: 100%; width: 100%; font-family: var(--font); background: #000; overflow: hidden; }
+
+  /* ── Slide container ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 48px 72px;
+    opacity: 0; pointer-events: none;
+    transform: translateX(60px);
+    transition: opacity .45s ease, transform .45s ease;
+    text-align: center;
+  }
+  .slide.active { opacity: 1; pointer-events: all; transform: translateX(0); }
+  .slide.exit   { opacity: 0; transform: translateX(-60px); }
+
+  /* Backgrounds */
+  .bg-dark    { background: linear-gradient(135deg, #001a3a 0%, #002a56 60%, #003f7f 100%); }
+  .bg-mid     { background: linear-gradient(135deg, #00213f 0%, #002f66 100%); }
+  .bg-light   { background: linear-gradient(135deg, #0a1f3d 0%, #00234a 100%); }
+  .bg-agent   { background: linear-gradient(135deg, #0d1f38 0%, #1a1040 100%); }
+
+  /* Grid line overlay */
+  .slide::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  /* ── Typography ── */
+  .slide-label { font-size: .65rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+  .slide-title { font-size: 2.6rem; font-weight: 900; color: var(--white); line-height: 1.1; letter-spacing: -.02em; margin-bottom: 12px; }
+  .slide-title span { color: var(--gold); }
+  .slide-sub   { font-size: 1.05rem; color: var(--muted); line-height: 1.6; max-width: 680px; }
+  .slide-sub b { color: var(--off); }
+  h3 { font-size: 1rem; font-weight: 700; color: var(--off); margin-bottom: 6px; }
+  p  { font-size: .85rem; color: var(--muted); line-height: 1.55; }
+
+  /* ── Nav ── */
+  .nav { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; z-index: 100; }
+  .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.25); cursor: pointer; transition: all .2s; }
+  .nav-dot.active { background: var(--gold); transform: scale(1.3); }
+  .nav-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07); color: #fff; font-size: 1rem; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; }
+  .nav-btn:hover { background: rgba(255,255,255,.15); }
+  .slide-counter { position: fixed; top: 22px; right: 28px; font-size: .72rem; color: rgba(255,255,255,.35); letter-spacing: .06em; z-index: 100; }
+  .key-hint { position: fixed; top: 22px; left: 28px; font-size: .65rem; color: rgba(255,255,255,.2); letter-spacing: .06em; }
+
+  /* ── Utility ── */
+  .tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: .72rem; font-weight: 700; letter-spacing: .04em; }
+  .tag-gold   { background: rgba(240,180,41,.15); color: var(--gold);  border: 1px solid rgba(240,180,41,.3); }
+  .tag-green  { background: rgba(16,185,129,.15);  color: var(--green2); border: 1px solid rgba(16,185,129,.3); }
+  .tag-blue   { background: rgba(59,130,246,.15);  color: #93c5fd;     border: 1px solid rgba(59,130,246,.3); }
+  .tag-red    { background: rgba(239,68,68,.15);   color: #fca5a5;     border: 1px solid rgba(239,68,68,.3); }
+  .tag-purple { background: rgba(139,92,246,.15);  color: #c4b5fd;     border: 1px solid rgba(139,92,246,.3); }
+  .tags-row   { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center; }
+  .flow-box {
+    padding: 10px 16px; border-radius: 10px; font-size: .78rem; font-weight: 700;
+    border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06);
+    color: var(--off); white-space: nowrap; text-align: center; line-height: 1.3;
+    min-width: 90px;
+  }
+  .flow-box small { display: block; font-size: .62rem; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .flow-box.highlight { background: rgba(240,180,41,.15); border-color: rgba(240,180,41,.4); color: var(--gold); }
+  .flow-box.green     { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); color: var(--green2); }
+  .flow-box.red       { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.35);  color: #fca5a5; }
+  .flow-box.purple    { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.35); color: #c4b5fd; }
+  .flow-box.blue      { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.35); color: #93c5fd; }
+  .flow-arrow { color: rgba(255,255,255,.3); font-size: 1.1rem; padding: 0 6px; flex-shrink: 0; }
+  .flow-arrow-down { color: rgba(255,255,255,.3); font-size: 1.1rem; text-align: center; margin: 4px 0; }
+
+  /* ── Cards grid ── */
+  .cards { display: grid; gap: 14px; width: 100%; max-width: 920px; }
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards-4 { grid-template-columns: repeat(4, 1fr); }
+  .cards-5 { grid-template-columns: repeat(5, 1fr); }
+  .card {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px; padding: 18px 16px; text-align: left;
+  }
+  .card__icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .card__title { font-size: .82rem; font-weight: 800; color: var(--off); margin-bottom: 4px; }
+  .card__body  { font-size: .72rem; color: var(--muted); line-height: 1.5; }
+  .card--gold   { border-color: rgba(240,180,41,.3); background: rgba(240,180,41,.06); }
+  .card--green  { border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.06); }
+  .card--blue   { border-color: rgba(59,130,246,.3); background: rgba(59,130,246,.06); }
+  .card--purple { border-color: rgba(139,92,246,.3); background: rgba(139,92,246,.06); }
+  .card--red    { border-color: rgba(239,68,68,.3);  background: rgba(239,68,68,.06); }
+
+  /* ── Table ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+  .data-table th { padding: 8px 14px; background: rgba(255,255,255,.07); color: var(--muted); font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; text-align: left; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,.05); color: var(--off); text-align: left; }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* ── Architecture layers ── */
+  .arch { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 820px; }
+  .arch-layer { border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+  .arch-layer__label { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; width: 90px; flex-shrink: 0; }
+  .arch-layer__boxes { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+  .arch-box { padding: 6px 12px; border-radius: 7px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+
+  /* ── Decision tree ── */
+  .dtree { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .dtree-node { padding: 9px 20px; border-radius: 8px; font-size: .76rem; font-weight: 700; text-align: center; min-width: 160px; }
+  .dtree-branches { display: flex; gap: 16px; align-items: flex-start; justify-content: center; }
+  .dtree-branch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .dtree-label { font-size: .6rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .dtree-connector { width: 1px; height: 16px; background: rgba(255,255,255,.2); }
+  .dtree-h-line { height: 1px; background: rgba(255,255,255,.15); position: relative; }
+
+  /* ── Channel status ── */
+  .ch-grid { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .ch-card { width: 120px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 14px 10px; text-align: center; }
+  .ch-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .ch-name { font-size: .72rem; font-weight: 800; color: var(--off); margin-bottom: 8px; }
+  .ch-status { display: flex; flex-direction: column; gap: 4px; }
+  .ch-pill { font-size: .6rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .pill-green  { background: rgba(16,185,129,.2);  color: var(--green2); }
+  .pill-blue   { background: rgba(59,130,246,.2);  color: #93c5fd; }
+
+  /* ── Stat numbers ── */
+  .big-stats { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+  .big-stat { text-align: center; }
+  .big-stat__num  { font-size: 3rem; font-weight: 900; color: var(--gold); line-height: 1; }
+  .big-stat__label{ font-size: .72rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── Agent bubble ── */
+  .agent-flow { display: flex; flex-direction: column; gap: 10px; max-width: 620px; width: 100%; text-align: left; }
+  .bubble { padding: 10px 14px; border-radius: 12px; font-size: .78rem; line-height: 1.5; }
+  .bubble-customer { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.25); color: #bfdbfe; border-bottom-left-radius: 3px; }
+  .bubble-agent    { background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.25); color: #a7f3d0; border-bottom-right-radius: 3px; align-self: flex-end; }
+  .bubble-meta     { font-size: .62rem; color: var(--muted); margin-top: 2px; }
+  .bubble-meta-r   { text-align: right; }
+
+  /* ── Divider ── */
+  .divider { width: 60px; height: 3px; background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 2px; margin: 14px auto; }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ─── Slide 1: Title ─── -->
+  <div class="slide bg-dark active" data-slide="1">
+    <div style="font-size:3rem;margin-bottom:16px">🏦</div>
+    <div class="slide-label">Bank Poalim · Digital Transformation</div>
+    <div class="slide-title">KYC <span>Digital Update</span> System</div>
+    <div class="divider"></div>
+    <div class="slide-sub">An end-to-end automated platform for customer identity verification — multi-channel, bilingual, AI-assisted, and fully compliant with Israeli banking regulations.</div>
+    <div class="tags-row">
+      <span class="tag tag-gold">AML / CFT Compliant</span>
+      <span class="tag tag-green">FATCA · CRS · PEP</span>
+      <span class="tag tag-blue">5 Notification Channels</span>
+      <span class="tag tag-purple">AI Agents</span>
+      <span class="tag tag-gold">Hebrew · English · RTL</span>
+    </div>
+  </div>
+
+  <!-- ─── Slide 2: Why KYC ─── -->
+  <div class="slide bg-mid" data-slide="2">
+    <div class="slide-label">Context</div>
+    <div class="slide-title">Why <span>KYC</span> Matters</div>
+    <div class="slide-sub" style="margin-bottom:28px">Banks are legally required to periodically verify customer identity, income, and financial activity to prevent money laundering, fraud, and sanctions violations.</div>
+    <div class="cards cards-3" style="max-width:860px">
+      <div class="card card--gold">
+        <div class="card__icon">⚖️</div>
+        <div class="card__title">Legal Basis</div>
+        <div class="card__body">Prevention of Money Laundering Law (2000) · Bank of Israel Directive 411 · FATCA · CRS</div>
+      </div>
+      <div class="card card--red">
+        <div class="card__icon">⚠️</div>
+        <div class="card__title">The Old Problem</div>
+        <div class="card__body">Manual branch visits · Slow paper forms · Inconsistent data · No tracking · High no-show rate</div>
+      </div>
+      <div class="card card--green">
+        <div class="card__icon">✅</div>
+        <div class="card__title">Our Solution</div>
+        <div class="card__body">Fully digital self-service · Multi-channel alerts · AI validation · Real-time compliance dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 3: Architecture ─── -->
+  <div class="slide bg-light" data-slide="3">
+    <div class="slide-label">Technical Architecture</div>
+    <div class="slide-title" style="font-size:2rem">System <span>Components</span></div>
+    <div class="arch" style="margin-top:22px">
+      <div class="arch-layer" style="background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.2)">
+        <div class="arch-layer__label" style="color:var(--gold)">Customer</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">📱 Mobile App</span>
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">🌐 Web Browser</span>
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">💬 SMS / WhatsApp link</span>
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">✉ Email link</span>
+        </div>
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.9rem">↕ HTTPS</div>
+      <div class="arch-layer" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2)">
+        <div class="arch-layer__label" style="color:#93c5fd">Frontend</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">⚛ React KycQuestionnaire</span>
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">🌍 Bilingual (EN/HE · RTL)</span>
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">📎 Document Upload</span>
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">📊 Ops Dashboard</span>
+        </div>
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.9rem">↕ REST API</div>
+      <div class="arch-layer" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2)">
+        <div class="arch-layer__label" style="color:var(--green2)">Backend</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">🔧 Express API Routes</span>
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">🧠 Rule Engine</span>
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">📋 Questionnaire Builder</span>
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">📝 Audit Logger</span>
+        </div>
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.9rem">↕ Integrations</div>
+      <div class="arch-layer" style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2)">
+        <div class="arch-layer__label" style="color:#c4b5fd">Systems</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">🏛 Core Banking (CRM)</span>
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">🔍 AML Screening</span>
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">🚨 PEP / Sanctions</span>
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">💾 Audit Store</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 4: End-to-End Flow ─── -->
+  <div class="slide bg-dark" data-slide="4">
+    <div class="slide-label">Customer Journey</div>
+    <div class="slide-title" style="font-size:2rem">End-to-End <span>Flow</span></div>
+    <div style="margin-top:20px;width:100%;max-width:900px">
+      <!-- Row 1 -->
+      <div style="margin-bottom:4px;font-size:.6rem;color:var(--muted);text-align:left;padding-left:4px;text-transform:uppercase;letter-spacing:.08em">1 · Trigger &amp; Notify</div>
+      <div class="flow" style="justify-content:flex-start">
+        <div class="flow-box highlight">🔔 Trigger<small>13 types</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box blue">📤 Notify Customer<small>5 channels</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box green">✉ Mail</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">💬 SMS</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">🟢 WhatsApp</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">🌐 Web</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">📱 App</div>
+      </div>
+      <div class="flow-arrow-down" style="text-align:left;padding-left:52px">↓</div>
+      <!-- Row 2 -->
+      <div style="margin-bottom:4px;font-size:.6rem;color:var(--muted);text-align:left;padding-left:4px;text-transform:uppercase;letter-spacing:.08em">2 · Customer Session</div>
+      <div class="flow" style="justify-content:flex-start">
+        <div class="flow-box">🌐 Language<small>EN / HE</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">🔐 Auth<small>OTP / Biometric</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">📋 Questionnaire<small>Risk-adaptive</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box blue">📎 Upload Docs<small>if required</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">👁 Review</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">✅ Submit</div>
+      </div>
+      <div class="flow-arrow-down" style="text-align:right;padding-right:10px">↓</div>
+      <!-- Row 3 -->
+      <div style="margin-bottom:4px;font-size:.6rem;color:var(--muted);text-align:left;padding-left:4px;text-transform:uppercase;letter-spacing:.08em">3 · Decision</div>
+      <div class="flow" style="justify-content:flex-end">
+        <div class="flow-box green">🤖 Auto Complete</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d">🔎 Light Review</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box" style="background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.3);color:#fdba74">📂 Full Review</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box red">🚫 Restrict</div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box highlight">🧠 Rule Engine<small>Risk score</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box purple">📊 Dashboard<small>tracks all</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 5: Channels ─── -->
+  <div class="slide bg-mid" data-slide="5">
+    <div class="slide-label">Notification Layer</div>
+    <div class="slide-title">5-Channel <span>Delivery</span></div>
+    <div class="slide-sub" style="margin-bottom:24px">Every customer is reached across all available channels simultaneously. The dashboard tracks both <b>delivery status</b> and <b>open/read status</b> per channel.</div>
+    <div class="ch-grid">
+      <div class="ch-card"><div class="ch-icon">✉</div><div class="ch-name">Mail</div><div class="ch-status"><span class="ch-pill pill-green">✓ Delivered</span><span class="ch-pill pill-blue">👁 Link clicked</span></div></div>
+      <div class="ch-card"><div class="ch-icon">💬</div><div class="ch-name">SMS</div><div class="ch-status"><span class="ch-pill pill-green">✓ Delivered</span><span class="ch-pill pill-blue">👁 Link clicked</span></div></div>
+      <div class="ch-card"><div class="ch-icon">🟢</div><div class="ch-name">WhatsApp</div><div class="ch-status"><span class="ch-pill pill-green">✓ Delivered</span><span class="ch-pill pill-blue">👁 Read receipt</span></div></div>
+      <div class="ch-card"><div class="ch-icon">🌐</div><div class="ch-name">Website</div><div class="ch-status"><span class="ch-pill pill-green">✓ Banner shown</span><span class="ch-pill pill-blue">👁 Page viewed</span></div></div>
+      <div class="ch-card"><div class="ch-icon">📱</div><div class="ch-name">App</div><div class="ch-status"><span class="ch-pill pill-green">✓ Push delivered</span><span class="ch-pill pill-blue">👁 Tapped</span></div></div>
+    </div>
+    <div class="tags-row" style="margin-top:20px">
+      <span class="tag tag-gold">Resend if no response after N days (configurable)</span>
+      <span class="tag tag-green">Max resend attempts configurable</span>
+      <span class="tag tag-blue">Full delivery + open log in dashboard</span>
+    </div>
+  </div>
+
+  <!-- ─── Slide 6: Questionnaire ─── -->
+  <div class="slide bg-light" data-slide="6">
+    <div class="slide-label">Smart Questionnaire</div>
+    <div class="slide-title">Risk-Adaptive <span>Questions</span></div>
+    <div style="display:flex;gap:20px;width:100%;max-width:900px;margin-top:18px;align-items:flex-start">
+      <div style="flex:1">
+        <table class="data-table">
+          <thead><tr><th>Section</th><th>LOW</th><th>MEDIUM</th><th>HIGH / V.HIGH</th></tr></thead>
+          <tbody>
+            <tr><td>Identity Confirmation</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Employment</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Income &amp; Source of Income</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Source of Funds</td><td style="color:var(--muted)">—</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Source of Wealth</td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Account Activity</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>International Transfers</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Tax Residency / FATCA / CRS</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>PEP Declaration</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Beneficial Ownership</td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>Document Upload</td><td style="color:var(--muted)">—</td><td style="color:var(--gold)">Partial</td><td style="color:var(--green2)">✓ Full</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="width:220px;display:flex;flex-direction:column;gap:10px">
+        <div class="card card--gold">
+          <div class="card__title">Low Risk Fast-Track</div>
+          <div class="card__body">Returning LOW-risk customers with complete data get a 7-question minimal set.</div>
+        </div>
+        <div class="card card--blue">
+          <div class="card__title">Conditional Branching</div>
+          <div class="card__body">Follow-up questions appear automatically based on prior answers (e.g. country exposure only if international transfers = Yes).</div>
+        </div>
+        <div class="card card--green">
+          <div class="card__title">Pre-filled from CRM</div>
+          <div class="card__body">Known answers from the customer's profile are pre-filled; customer confirms or updates them.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 7: Documents ─── -->
+  <div class="slide bg-dark" data-slide="7">
+    <div class="slide-label">Document Upload</div>
+    <div class="slide-title">Supporting <span>Documents</span></div>
+    <div style="display:flex;gap:20px;width:100%;max-width:900px;margin-top:16px;align-items:flex-start">
+      <div style="flex:1">
+        <table class="data-table">
+          <thead><tr><th>Document</th><th>Trigger</th><th>Risk Level</th></tr></thead>
+          <tbody>
+            <tr><td>📄 Income proof<br><small style="color:var(--muted)">Salary slip / bank statement</small></td><td>Always required</td><td><span class="tag tag-gold" style="font-size:.6rem">MEDIUM +</span></td></tr>
+            <tr><td>🪪 National ID / Passport<br><small style="color:var(--muted)">Both sides required</small></td><td>Always required</td><td><span class="tag tag-red" style="font-size:.6rem">HIGH +</span></td></tr>
+            <tr><td>📜 Source of funds evidence<br><small style="color:var(--muted)">Inheritance letter, sale agreement…</small></td><td>SOF = Inheritance / Real Estate / Loan / Gift / Other</td><td><span class="tag tag-red" style="font-size:.6rem">HIGH +</span></td></tr>
+            <tr><td>🏢 Business registration<br><small style="color:var(--muted)">Certificate or freelance license</small></td><td>Employment = Business Owner / Self-Employed</td><td><span class="tag tag-red" style="font-size:.6rem">HIGH +</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="width:200px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px">Upload Flow</div>
+        <div class="flow-box blue" style="text-align:center">📎 Drag &amp; Drop<br><small>PDF · JPG · PNG · 10 MB</small></div>
+        <div class="flow-arrow-down">↓</div>
+        <div class="flow-box purple" style="text-align:center">🔍 Document Validation Agent<br><small>Type detection · Field extraction</small></div>
+        <div class="flow-arrow-down">↓</div>
+        <div class="flow-box green" style="text-align:center">✅ Valid<br><small>Name · Date · Expiry · Match</small></div>
+        <div class="flow-arrow" style="display:flex;justify-content:center">↕</div>
+        <div class="flow-box" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d;text-align:center">⚠ Review needed<br><small>Analyst flagged</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 8: Rule Engine ─── -->
+  <div class="slide bg-mid" data-slide="8">
+    <div class="slide-label">Compliance Engine</div>
+    <div class="slide-title">Risk Scoring &amp; <span>Decision</span></div>
+    <div style="display:flex;gap:24px;width:100%;max-width:920px;margin-top:16px;align-items:flex-start">
+      <!-- Score table -->
+      <div style="flex:1">
+        <div style="font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Score Adjustments</div>
+        <table class="data-table">
+          <thead><tr><th>Rule</th><th>Impact</th><th>Flag</th></tr></thead>
+          <tbody>
+            <tr><td>Sanctions match</td><td style="color:#fca5a5;font-weight:700">+35</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">HARD</span></td></tr>
+            <tr><td>PEP declared</td><td style="color:#fca5a5;font-weight:700">+25</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">HARD</span></td></tr>
+            <tr><td>Income/activity mismatch ≥2 bands</td><td style="color:#fca5a5;font-weight:700">+25</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">HARD</span></td></tr>
+            <tr><td>High-risk country exposure</td><td style="color:#fca5a5;font-weight:700">+20</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">HARD</span></td></tr>
+            <tr><td>Unknown source of funds</td><td style="color:#fca5a5;font-weight:700">+20</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">HARD</span></td></tr>
+            <tr><td>Income/activity mismatch 1 band</td><td style="color:#fcd34d;font-weight:700">+8</td><td><span class="tag tag-gold" style="font-size:.58rem;padding:1px 6px">SOFT</span></td></tr>
+            <tr><td>Foreign tax residency</td><td style="color:#fcd34d;font-weight:700">+5</td><td><span class="tag tag-gold" style="font-size:.58rem;padding:1px 6px">SOFT</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- Decision tree -->
+      <div style="width:240px">
+        <div style="font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Decision Tree</div>
+        <div class="dtree">
+          <div class="dtree-node" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);color:#93c5fd">Score 0–100<br><small style="font-size:.6rem;color:var(--muted)">capped at 100</small></div>
+          <div class="dtree-connector"></div>
+          <div class="dtree-node" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.25);color:#c4b5fd">Any HARD flags?</div>
+          <div style="display:flex;gap:8px">
+            <div class="dtree-branch">
+              <div class="dtree-label">Sanctions</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:.7rem;padding:6px 10px">🚫 Restrict</div>
+            </div>
+            <div class="dtree-branch">
+              <div class="dtree-label">Other HARD</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:#fdba74;font-size:.7rem;padding:6px 10px">📂 Full Review</div>
+            </div>
+          </div>
+          <div class="dtree-connector"></div>
+          <div class="dtree-node" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.25);color:#c4b5fd">≥2 SOFT flags?</div>
+          <div style="display:flex;gap:8px">
+            <div class="dtree-branch">
+              <div class="dtree-label">Yes</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fcd34d;font-size:.7rem;padding:6px 10px">🔎 Light Review</div>
+            </div>
+            <div class="dtree-branch">
+              <div class="dtree-label">No</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--green2);font-size:.7rem;padding:6px 10px">✅ Auto Complete</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 9: Dashboard ─── -->
+  <div class="slide bg-light" data-slide="9">
+    <div class="slide-label">Operations</div>
+    <div class="slide-title">Admin <span>Dashboard</span></div>
+    <div class="cards cards-2" style="max-width:860px;margin-top:18px">
+      <div class="card card--blue">
+        <div class="card__icon">📊</div>
+        <div class="card__title">Notification Monitor</div>
+        <div class="card__body">Per-customer, per-channel delivery bubbles: <b style="color:#93c5fd">✓ Delivered · 👁 Opened · ⏳ Pending · ✗ Failed</b>. Stats cards show open rates per channel. Full search and filter.</div>
+      </div>
+      <div class="card card--gold">
+        <div class="card__icon">📤</div>
+        <div class="card__title">Bulk Upload &amp; Send</div>
+        <div class="card__body">Drag-and-drop CSV of customer records. Validation Agent checks each row. Select channels. Live per-customer, per-channel sending animation.</div>
+      </div>
+      <div class="card card--green">
+        <div class="card__icon">📬</div>
+        <div class="card__title">Response Tracking</div>
+        <div class="card__body">Track who responded, when, and whether they had questions. Auto-reply agent composes answers. Document validation agent analyses uploads. Admin approves or overrides.</div>
+      </div>
+      <div class="card card--purple">
+        <div class="card__icon">⚙️</div>
+        <div class="card__title">Resend Settings</div>
+        <div class="card__body">Configure resend interval (1 / 3 / 7 / 14 / custom days), max attempts, send time. Live upcoming schedule preview. One-click "Send Now" override. Full resend log.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 10: AI Agents ─── -->
+  <div class="slide bg-agent" data-slide="10">
+    <div class="slide-label">AI Agents</div>
+    <div class="slide-title">Automated <span>Intelligence</span></div>
+    <div style="display:flex;gap:28px;width:100%;max-width:900px;margin-top:18px;align-items:flex-start">
+      <!-- Auto-reply agent -->
+      <div style="flex:1">
+        <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px">🤖 Auto-Reply Agent</div>
+        <div class="agent-flow">
+          <div>
+            <div class="bubble bubble-customer">Why do I need to upload a salary slip? Is this mandatory?</div>
+            <div class="bubble-meta">David Cohen · 10:45</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end">
+            <div style="font-size:.62rem;color:var(--green2);margin-bottom:4px">🤖 KYC Auto-Agent · Auto-approved ✓</div>
+            <div class="bubble bubble-agent">Under Bank of Israel Directive 411, we are required to verify your declared income with supporting documentation. A recent salary slip is the accepted standard for your account tier.</div>
+            <div class="bubble-meta bubble-meta-r">10:46 · 74 ms response time</div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span class="tag tag-green" style="font-size:.62rem">✓ Approve</span>
+            <span class="tag" style="font-size:.62rem;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:var(--muted)">Override</span>
+          </div>
+        </div>
+      </div>
+      <!-- Doc validation agent -->
+      <div style="flex:1">
+        <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px">📋 Document Validation Agent</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:1.2rem">📄</span>
+              <span style="font-size:.78rem;font-weight:700;color:var(--off)">salary_slip_june.pdf · 245 KB</span>
+              <span class="tag tag-green" style="font-size:.6rem;margin-left:auto">✅ Valid</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.68rem;color:var(--muted)">
+              <span>Type: <b style="color:var(--off)">Salary Slip</b></span>
+              <span>Employee: <b style="color:var(--off)">David Cohen</b></span>
+              <span>Month: <b style="color:var(--off)">June 2026</b></span>
+              <span>Net: <b style="color:var(--off)">₪22,400</b></span>
+            </div>
+            <div style="font-size:.66rem;color:var(--green2);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">All fields present · Matches declared income bracket</div>
+          </div>
+          <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="font-size:1.2rem">📄</span>
+              <span style="font-size:.78rem;font-weight:700;color:var(--off)">id_card_scan.jpg · 890 KB</span>
+              <span class="tag" style="font-size:.6rem;margin-left:auto;background:rgba(245,158,11,.15);color:#fcd34d;border-color:rgba(245,158,11,.3)">⚠ Review</span>
+            </div>
+            <div style="font-size:.66rem;color:#fcd34d;margin-top:4px">Expiry date not visible — both sides of ID required</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Slide 11: Summary ─── -->
+  <div class="slide bg-dark" data-slide="11">
+    <div class="slide-label">Summary</div>
+    <div class="slide-title">What We <span>Built</span></div>
+    <div class="divider"></div>
+    <div class="big-stats">
+      <div class="big-stat"><div class="big-stat__num">13</div><div class="big-stat__label">KYC Trigger Types</div></div>
+      <div class="big-stat"><div class="big-stat__num">5</div><div class="big-stat__label">Notification Channels</div></div>
+      <div class="big-stat"><div class="big-stat__num">23</div><div class="big-stat__label">Questions in Bank</div></div>
+      <div class="big-stat"><div class="big-stat__num">10</div><div class="big-stat__label">Rule Engine Rules</div></div>
+      <div class="big-stat"><div class="big-stat__num">2</div><div class="big-stat__label">AI Agents</div></div>
+    </div>
+    <div class="cards cards-3" style="max-width:800px;margin-top:28px">
+      <div class="card" style="text-align:left">
+        <div class="card__title">🌍 Bilingual &amp; Accessible</div>
+        <div class="card__body">Full Hebrew/English UI with RTL layout. Language selected before the questionnaire begins.</div>
+      </div>
+      <div class="card" style="text-align:left">
+        <div class="card__title">⚖️ Fully Compliant</div>
+        <div class="card__body">AML/CFT · FATCA · CRS · PEP screening. Every action logged to an immutable audit trail.</div>
+      </div>
+      <div class="card" style="text-align:left">
+        <div class="card__title">🤖 AI-Assisted</div>
+        <div class="card__body">Auto-reply agent answers customer questions. Document agent validates uploads in real time.</div>
+      </div>
+    </div>
+    <div style="margin-top:22px;font-size:.78rem;color:var(--muted)">
+      Open the demo: <span style="color:var(--gold);font-family:monospace">public/kyc-demo.html</span> &nbsp;·&nbsp; Dashboard: <span style="color:var(--gold);font-family:monospace">public/kyc-dashboard.html</span>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Nav -->
+<div class="key-hint">← → to navigate</div>
+<div class="slide-counter" id="counter">1 / 11</div>
+<div class="nav" id="navBar"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  let current  = 0;
+
+  // Build dots
+  const nav = document.getElementById('navBar');
+  nav.innerHTML = `<button class="nav-btn" onclick="go(-1)">‹</button>` +
+    Array.from({length: total}, (_,i) =>
+      `<div class="nav-dot ${i===0?'active':''}" onclick="goTo(${i})"></div>`
+    ).join('') +
+    `<button class="nav-btn" onclick="go(1)">›</button>`;
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 460);
+    current = n;
+    slides[current].classList.add('active');
+    document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', i === current));
+    document.getElementById('counter').textContent = `${current+1} / ${total}`;
+  }
+
+  function go(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); go(-1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End')  goTo(total-1);
+  });
+
+  // Click anywhere on slide to advance (except nav)
+  document.getElementById('deck').addEventListener('click', e => {
+    if (!e.target.closest('.nav') && !e.target.closest('.nav-btn') && !e.target.closest('.nav-dot')) go(1);
+  });
+</script>
+</body>
+</html>

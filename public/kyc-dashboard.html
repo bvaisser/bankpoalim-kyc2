@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYC Notification Dashboard — Bank</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --nav-bg: #002a56; --nav-width: 220px;
+      --primary: #003f7f; --primary-light: #e8f0fb;
+      --success: #15803d; --success-bg: #dcfce7; --success-border: #86efac;
+      --opened: #1d4ed8; --opened-bg: #dbeafe; --opened-border: #93c5fd;
+      --warning: #b45309; --warning-bg: #fef3c7; --warning-border: #fcd34d;
+      --danger: #b91c1c; --danger-bg: #fee2e2; --danger-border: #fca5a5;
+      --muted: #6b7280; --muted-bg: #f3f4f6; --muted-border: #d1d5db;
+      --surface: #f1f5f9; --card: #ffffff;
+      --text: #0f172a; --text-sec: #475569;
+      --border: #e2e8f0; --radius: 10px; --shadow: 0 1px 4px rgba(0,0,0,.08);
+      --shadow-md: 0 4px 16px rgba(0,0,0,.10);
+      --ch-mail: #2563eb; --ch-sms: #16a34a; --ch-wa: #15803d;
+      --ch-web: #7c3aed; --ch-app: #ea580c;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+    html, body { height: 100%; font-family: var(--font); background: var(--surface); color: var(--text); font-size: 14px; }
+
+    /* ── Layout ── */
+    .shell { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { width: var(--nav-width); background: var(--nav-bg); display: flex; flex-direction: column; flex-shrink: 0; position: fixed; top: 0; bottom: 0; z-index: 100; }
+    .sidebar__logo { padding: 20px 16px 16px; border-bottom: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 10px; }
+    .sidebar__logo-icon { font-size: 1.6rem; }
+    .sidebar__logo-text { color: #fff; font-size: .95rem; font-weight: 700; line-height: 1.2; }
+    .sidebar__logo-sub { color: rgba(255,255,255,.5); font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; }
+    .sidebar__nav { flex: 1; padding: 12px 0; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; color: rgba(255,255,255,.65); font-size: .85rem; font-weight: 500; transition: all .15s; border-left: 3px solid transparent; user-select: none; }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,.12); color: #fff; border-left-color: #60a5fa; }
+    .nav-item__icon { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0; }
+    .sidebar__lang { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.1); }
+    .lang-toggle { display: flex; border: 1px solid rgba(255,255,255,.2); border-radius: 6px; overflow: hidden; }
+    .lang-toggle button { flex: 1; padding: 5px 4px; border: none; background: none; color: rgba(255,255,255,.55); font-size: .72rem; font-weight: 700; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .lang-toggle button.active { background: rgba(255,255,255,.18); color: #fff; }
+
+    /* ── Main content ── */
+    .main { margin-left: var(--nav-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+    .topbar__title { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .topbar__meta { font-size: .75rem; color: var(--muted); }
+    .topbar__actions { display: flex; align-items: center; gap: 10px; }
+    .page-content { padding: 24px; flex: 1; }
+    .page { display: none; } .page.active { display: block; }
+
+    /* ── Cards ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .stat-card__label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 8px; }
+    .stat-card__value { font-size: 1.8rem; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .stat-card__sub { font-size: .7rem; color: var(--muted); }
+    .stat-card__bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; border-radius: 0 0 var(--radius) var(--radius); }
+    .stat-card__icon { position: absolute; top: 14px; right: 14px; font-size: 1.4rem; opacity: .25; }
+
+    .opened-rate { display: inline-flex; align-items: center; gap: 3px; font-size: .68rem; font-weight: 700; padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
+    .opened-rate--good { background: var(--opened-bg); color: var(--opened); }
+    .opened-rate--mid  { background: var(--warning-bg); color: var(--warning); }
+
+    /* ── Table ── */
+    .table-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .table-toolbar { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 160px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: .82rem; font-family: inherit; color: var(--text); outline: none; transition: border .15s; }
+    .search-input:focus { border-color: var(--primary); }
+    .filter-select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: .8rem; font-family: inherit; color: var(--text); background: #fff; cursor: pointer; outline: none; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead th { background: #f8fafc; padding: 10px 14px; text-align: left; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody td { padding: 10px 14px; vertical-align: middle; }
+    .customer-name { font-weight: 700; color: var(--text); }
+    .customer-id { font-size: .68rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── Channel bubbles ── */
+    .channels-row { display: flex; gap: 4px; flex-wrap: wrap; }
+    .ch-bubble { display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 20px; font-size: .65rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+    .ch-bubble--not_sent  { background: var(--muted-bg); color: var(--muted); border-color: var(--muted-border); }
+    .ch-bubble--pending   { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+    .ch-bubble--delivered { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .ch-bubble--opened    { background: var(--opened-bg);  color: var(--opened);  border-color: var(--opened-border); }
+    .ch-bubble--failed    { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border); }
+
+    /* ── KYC status pill ── */
+    .kyc-pill { display: inline-flex; padding: 3px 8px; border-radius: 20px; font-size: .65rem; font-weight: 700; border: 1px solid; }
+    .kyc-pill--COMPLETED  { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .kyc-pill--IN_PROGRESS{ background: var(--opened-bg);  color: var(--opened);  border-color: var(--opened-border); }
+    .kyc-pill--PENDING    { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+    .kyc-pill--EXPIRED    { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border); }
+
+    /* ── Opened summary cell ── */
+    .opened-summary { display: flex; align-items: center; gap: 5px; }
+    .opened-count { font-weight: 800; font-size: .9rem; }
+    .opened-denom { color: var(--muted); font-size: .72rem; }
+    .opened-icon { font-size: .9rem; }
+
+    /* ── Risk badge ── */
+    .risk-badge { display: inline-flex; padding: 2px 7px; border-radius: 4px; font-size: .62rem; font-weight: 700; }
+    .risk-badge--LOW    { background: var(--success-bg); color: var(--success); }
+    .risk-badge--MEDIUM { background: var(--warning-bg); color: var(--warning); }
+    .risk-badge--HIGH   { background: var(--danger-bg);  color: var(--danger);  }
+
+    /* ── Upload & Send page ── */
+    .upload-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; }
+    .card__title { font-size: .95rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .card__sub { font-size: .78rem; color: var(--muted); margin-bottom: 18px; }
+    .drop-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 24px; text-align: center; cursor: pointer; transition: all .2s; background: #fafcff; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: var(--primary-light); }
+    .drop-zone__icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .drop-zone__label { font-size: .9rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .drop-zone__hint { font-size: .72rem; color: var(--muted); }
+    .file-preview { margin-top: 14px; padding: 12px 14px; background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 7px; display: flex; align-items: center; gap: 10px; display: none; }
+    .file-preview.visible { display: flex; }
+    .file-preview__name { font-weight: 700; font-size: .82rem; color: var(--success); flex: 1; }
+    .file-preview__rows { font-size: .72rem; color: var(--muted); }
+    .download-sample { display: inline-flex; align-items: center; gap: 4px; font-size: .75rem; color: var(--primary); text-decoration: none; font-weight: 600; margin-top: 8px; }
+    .download-sample:hover { text-decoration: underline; }
+
+    /* ── Agent ── */
+    .agent-panel { margin-top: 22px; display: none; }
+    .agent-panel.visible { display: block; }
+    .agent-header { display: flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+    .agent-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .agent-progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 14px; }
+    .agent-progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #60a5fa); border-radius: 2px; transition: width .3s ease; width: 0%; }
+    .agent-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; margin-bottom: 4px; font-size: .78rem; transition: background .15s; }
+    .agent-row:hover { background: var(--muted-bg); }
+    .agent-row__status { font-size: 1rem; flex-shrink: 0; width: 20px; text-align: center; }
+    .agent-row__name { font-weight: 700; flex: 1; }
+    .agent-row__issues { font-size: .7rem; color: var(--danger); }
+    .agent-row__warn { font-size: .7rem; color: var(--warning); }
+
+    /* ── Channel selector ── */
+    .channel-selector { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .ch-checkbox { display: none; }
+    .ch-label { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 2px solid var(--border); cursor: pointer; font-size: .78rem; font-weight: 700; color: var(--muted); transition: all .15s; user-select: none; }
+    .ch-checkbox:checked + .ch-label { border-color: currentColor; color: var(--text); }
+    .ch-label[data-ch="mail"]:has(~ .ch-checkbox:checked),
+    .ch-checkbox:checked + .ch-label[data-ch="mail"] { color: var(--ch-mail); background: #eff6ff; border-color: var(--ch-mail); }
+    .ch-checkbox:checked + .ch-label[data-ch="sms"] { color: var(--ch-sms); background: #f0fdf4; border-color: var(--ch-sms); }
+    .ch-checkbox:checked + .ch-label[data-ch="whatsapp"] { color: var(--ch-wa); background: #f0fdf4; border-color: var(--ch-wa); }
+    .ch-checkbox:checked + .ch-label[data-ch="website"] { color: var(--ch-web); background: #faf5ff; border-color: var(--ch-web); }
+    .ch-checkbox:checked + .ch-label[data-ch="app"] { color: var(--ch-app); background: #fff7ed; border-color: var(--ch-app); }
+
+    /* ── Send button ── */
+    .btn-send { width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: .92rem; font-weight: 800; cursor: pointer; transition: all .2s; font-family: inherit; margin-top: 6px; }
+    .btn-send:hover { background: #002a56; box-shadow: 0 4px 16px rgba(0,63,127,.3); }
+    .btn-send:disabled { background: var(--muted); cursor: not-allowed; box-shadow: none; }
+
+    /* ── Sending progress ── */
+    .send-progress { margin-top: 22px; display: none; }
+    .send-progress.visible { display: block; }
+    .send-progress__title { font-size: .88rem; font-weight: 800; margin-bottom: 12px; }
+    .send-overall { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
+    .send-overall-fill { height: 100%; background: linear-gradient(90deg, var(--ch-sms), var(--ch-wa), var(--primary)); border-radius: 3px; transition: width .4s ease; width: 0%; }
+    .send-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; margin-bottom: 5px; background: var(--muted-bg); }
+    .send-row__name { font-weight: 700; font-size: .8rem; flex: 0 0 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .send-row__channels { display: flex; gap: 5px; flex: 1; flex-wrap: wrap; }
+    .send-bubble { padding: 3px 8px; border-radius: 20px; font-size: .65rem; font-weight: 700; border: 1px solid transparent; transition: all .3s; }
+    .send-bubble--waiting  { background: var(--muted-bg); color: var(--muted); border-color: var(--muted-border); }
+    .send-bubble--sending  { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+    .send-bubble--done     { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .send-bubble--failed   { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border); }
+
+    /* ── Summary banner ── */
+    .summary-banner { padding: 16px 20px; border-radius: var(--radius); border: 1px solid var(--success-border); background: var(--success-bg); color: var(--success); font-weight: 700; font-size: .88rem; margin-top: 16px; display: none; }
+    .summary-banner.visible { display: flex; align-items: center; gap: 10px; }
+
+    /* ── Utility ── */
+    .btn-sm { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: #fff; font-size: .75rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; color: var(--text); }
+    .btn-sm:hover { border-color: var(--primary); color: var(--primary); }
+    .text-muted { color: var(--muted); }
+    .section-title { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 12px; }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); font-size: .85rem; }
+
+    /* ── Dot pulse animation ── */
+    .dot-pulse::after { content: ''; animation: dots 1.4s infinite; }
+    @keyframes dots { 0%,20% { content: '.'; } 40%,60% { content: '..'; } 80%,100% { content: '...'; } }
+
+    /* ── Response table ── */
+    .resp-tabs { display: flex; gap: 4px; margin-bottom: 18px; }
+    .resp-tab { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: #fff; font-size: .78rem; font-weight: 700; cursor: pointer; transition: all .15s; color: var(--muted); }
+    .resp-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .resp-badge { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 10px; font-size: .65rem; background: rgba(0,0,0,.08); }
+    .resp-tab.active .resp-badge { background: rgba(255,255,255,.25); }
+
+    .has-msg { display: inline-flex; align-items: center; gap: 4px; font-size:.7rem; font-weight:700; padding:2px 7px; border-radius:20px; background:var(--warning-bg); color:var(--warning); border:1px solid var(--warning-border); }
+
+    /* ── Detail panel ── */
+    .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; display: none; }
+    .detail-overlay.open { display: block; }
+    .detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(600px, 100vw); background: var(--card); border-left: 1px solid var(--border); box-shadow: -4px 0 32px rgba(0,0,0,.12); z-index: 201; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .25s ease; overflow: hidden; }
+    .detail-panel.open { transform: translateX(0); }
+    .detail-header { padding: 18px 22px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .detail-header__customer { font-weight: 800; font-size: 1rem; }
+    .detail-header__id { font-size: .72rem; color: var(--muted); }
+    .detail-close { font-size: 1.2rem; cursor: pointer; color: var(--muted); background: none; border: none; padding: 4px 8px; border-radius: 6px; transition: all .15s; }
+    .detail-close:hover { background: var(--muted-bg); color: var(--text); }
+    .detail-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .detail-tab { flex: 1; padding: 10px 8px; border: none; background: none; font-size: .78rem; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; transition: all .15s; }
+    .detail-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .detail-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+
+    /* ── Chat / Agent reply ── */
+    .chat-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .chat-bubble { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: .8rem; line-height: 1.5; }
+    .chat-bubble--customer { background: var(--primary-light); color: var(--primary); border-bottom-left-radius: 4px; align-self: flex-start; border: 1px solid #c3d8f6; }
+    .chat-bubble--agent { background: var(--success-bg); color: var(--success); border-bottom-right-radius: 4px; align-self: flex-end; border: 1px solid var(--success-border); }
+    .chat-bubble--processing { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning); align-self: flex-end; }
+    .chat-meta { font-size: .65rem; color: var(--muted); margin-top: 3px; }
+    .chat-meta--right { text-align: right; }
+    .agent-label { display: inline-flex; align-items: center; gap: 4px; font-size: .68rem; font-weight: 700; background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); padding: 2px 8px; border-radius: 20px; margin-bottom: 6px; }
+    .reply-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-approve { padding: 6px 14px; border-radius: 6px; border: none; background: var(--success); color: #fff; font-size: .75rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-approve:hover { background: #166534; }
+    .btn-override { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--text); font-size: .75rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-override:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Document validation ── */
+    .doc-item { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: #fafcff; }
+    .doc-item__header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .doc-item__name { font-weight: 700; font-size: .82rem; flex: 1; }
+    .doc-item__size { font-size: .68rem; color: var(--muted); }
+    .doc-verdict { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: .68rem; font-weight: 700; border: 1px solid; }
+    .doc-verdict--valid { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .doc-verdict--warning { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+    .doc-verdict--invalid { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+    .doc-verdict--scanning { background: var(--opened-bg); color: var(--opened); border-color: var(--opened-border); }
+    .doc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; }
+    .doc-field { font-size: .7rem; display: flex; align-items: center; gap: 4px; }
+    .doc-field__icon { font-size: .75rem; }
+    .doc-field__label { color: var(--muted); }
+    .doc-field__value { font-weight: 600; color: var(--text); }
+    .doc-note { font-size: .72rem; color: var(--muted); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+
+    /* ── KYC answers summary ── */
+    .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .answer-item { padding: 8px 10px; background: var(--muted-bg); border-radius: 6px; }
+    .answer-item__label { font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+    .answer-item__value { font-size: .8rem; font-weight: 700; color: var(--text); }
+
+    /* ── Settings page ── */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .interval-btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .interval-btn { padding: 8px 16px; border-radius: 8px; border: 2px solid var(--border); background: #fff; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; color: var(--muted); }
+    .interval-btn.active { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+    .custom-input-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .number-input { width: 70px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: .85rem; font-family: inherit; color: var(--text); text-align: center; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: .85rem; font-weight: 700; }
+    .setting-sub { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .setting-control { display: flex; align-items: center; gap: 8px; }
+    .select-input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: .82rem; font-family: inherit; color: var(--text); background: #fff; }
+    .schedule-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; background: var(--muted-bg); margin-bottom: 8px; }
+    .schedule-item__time { font-weight: 700; font-size: .82rem; }
+    .schedule-item__count { font-size: .72rem; color: var(--muted); }
+    .schedule-item__badge { font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .schedule-item__badge--soon { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+    .schedule-item__badge--later { background: var(--muted-bg); color: var(--muted); border: 1px solid var(--muted-border); }
+    .btn-primary { padding: 10px 22px; border-radius: 8px; border: none; background: var(--primary); color: #fff; font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .2s; }
+    .btn-primary:hover { background: #002a56; box-shadow: 0 4px 12px rgba(0,63,127,.25); }
+    .btn-secondary { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text); font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .countdown-wrap { display: flex; align-items: center; gap: 6px; padding: 14px 16px; background: var(--primary-light); border: 1px solid #c3d8f6; border-radius: 10px; margin-bottom: 18px; }
+    .countdown-icon { font-size: 1.4rem; }
+    .countdown-text { font-size: .85rem; font-weight: 700; color: var(--primary); }
+    .countdown-sub { font-size: .72rem; color: var(--muted); margin-top: 1px; }
+    .save-banner { padding: 12px 16px; background: var(--success-bg); border: 1px solid var(--success-border); border-radius: 8px; color: var(--success); font-weight: 700; font-size: .82rem; display: none; margin-top: 12px; }
+    .save-banner.show { display: block; }
+
+    /* ── RTL ── */
+    [dir="rtl"] thead th,
+    [dir="rtl"] tbody td { text-align: right; }
+    [dir="rtl"] .sidebar { left: auto; right: 0; }
+    [dir="rtl"] .main { margin-left: 0; margin-right: var(--nav-width); }
+    [dir="rtl"] .nav-item { border-left: none; border-right: 3px solid transparent; }
+    [dir="rtl"] .nav-item.active { border-right-color: #60a5fa; }
+    [dir="rtl"] .send-row__name { text-align: right; }
+    [dir="rtl"] .channels-row { justify-content: flex-end; }
+    [dir="rtl"] .topbar { flex-direction: row-reverse; }
+
+    @media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 900px) { .upload-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar__logo">
+      <span class="sidebar__logo-icon">🏦</span>
+      <div>
+        <div class="sidebar__logo-text" data-i18n="brand">Bank KYC Portal</div>
+        <div class="sidebar__logo-sub" data-i18n="brandSub">Notification Dashboard</div>
+      </div>
+    </div>
+    <nav class="sidebar__nav">
+      <div class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-item__icon">📊</span>
+        <span data-i18n="nav.dashboard">Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="showPage('upload', this)">
+        <span class="nav-item__icon">📤</span>
+        <span data-i18n="nav.upload">Upload &amp; Send</span>
+      </div>
+      <div class="nav-item" onclick="showPage('responses', this)">
+        <span class="nav-item__icon">📬</span>
+        <span data-i18n="nav.responses">Responses</span>
+        <span id="responseBadgeNav" style="margin-left:auto;font-size:.62rem;background:var(--warning);color:#fff;padding:1px 6px;border-radius:10px;"></span>
+      </div>
+      <div class="nav-item" onclick="showPage('settings', this)">
+        <span class="nav-item__icon">⚙️</span>
+        <span data-i18n="nav.settings">Settings</span>
+      </div>
+    </nav>
+    <div class="sidebar__lang">
+      <div class="lang-toggle">
+        <button id="btnEn" class="active" onclick="setLang('en')">EN</button>
+        <button id="btnHe" onclick="setLang('he')">עב</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar__title" data-i18n="topbar.title">KYC Notification Center</div>
+        <div class="topbar__meta" id="topbarMeta">Loading…</div>
+      </div>
+      <div class="topbar__actions">
+        <button class="btn-sm" onclick="refreshDashboard()" data-i18n="topbar.refresh">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- ── Page: Dashboard ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-content">
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <!-- Table -->
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input class="search-input" type="search" id="searchInput" placeholder="Search customer or ID…" oninput="renderTable()" />
+            <select class="filter-select" id="filterChannel" onchange="renderTable()">
+              <option value="">All Channels</option>
+              <option value="mail">Mail</option>
+              <option value="sms">SMS</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="website">Website</option>
+              <option value="app">App</option>
+            </select>
+            <select class="filter-select" id="filterStatus" onchange="renderTable()">
+              <option value="">All Statuses</option>
+              <option value="delivered">Delivered</option>
+              <option value="opened">Opened</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+            </select>
+            <select class="filter-select" id="filterKyc" onchange="renderTable()">
+              <option value="">All KYC</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="PENDING">Pending</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="th.customer">Customer</th>
+                  <th data-i18n="th.risk">Risk</th>
+                  <th data-i18n="th.trigger">Trigger</th>
+                  <th data-i18n="th.mail">✉ Mail</th>
+                  <th data-i18n="th.sms">💬 SMS</th>
+                  <th data-i18n="th.whatsapp">🟢 WhatsApp</th>
+                  <th data-i18n="th.website">🌐 Website</th>
+                  <th data-i18n="th.app">📱 App</th>
+                  <th data-i18n="th.opened">👁 Opened</th>
+                  <th data-i18n="th.kyc">KYC Status</th>
+                  <th data-i18n="th.sentAt">Sent At</th>
+                </tr>
+              </thead>
+              <tbody id="notifTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /page-dashboard -->
+
+    <!-- ── Page: Upload & Send ── -->
+    <div class="page" id="page-upload">
+      <div class="page-content">
+        <div class="upload-layout">
+
+          <!-- Left: Upload + Agent -->
+          <div>
+            <div class="card">
+              <div class="card__title" data-i18n="upload.title">Upload Customer File</div>
+              <div class="card__sub" data-i18n="upload.sub">Upload a CSV with customer details. The agent will validate each row before sending.</div>
+
+              <input type="file" id="csvFile" accept=".csv,.txt" style="display:none" onchange="handleFileUpload(this)" />
+              <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvFile').click()" ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="this.classList.remove('drag-over')">
+                <div class="drop-zone__icon">📂</div>
+                <div class="drop-zone__label" data-i18n="upload.dropLabel">Click or drag &amp; drop CSV file</div>
+                <div class="drop-zone__hint" data-i18n="upload.dropHint">CSV format · max 5 MB</div>
+              </div>
+              <a href="#" class="download-sample" onclick="downloadSample(event)" data-i18n="upload.sample">⬇ Download sample CSV</a>
+
+              <div class="file-preview" id="filePreview">
+                <span style="font-size:1.3rem">📄</span>
+                <div>
+                  <div class="file-preview__name" id="fileName">—</div>
+                  <div class="file-preview__rows" id="fileRows">—</div>
+                </div>
+                <button class="btn-sm" onclick="clearFile()" data-i18n="upload.clear">✕ Clear</button>
+              </div>
+
+              <!-- Agent validation panel -->
+              <div class="agent-panel" id="agentPanel">
+                <div class="agent-header">
+                  <div class="agent-spinner" id="agentSpinner"></div>
+                  <span id="agentTitle" data-i18n="agent.validating">🤖 Agent — Validating data</span>
+                </div>
+                <div class="agent-progress-bar"><div class="agent-progress-fill" id="agentFill"></div></div>
+                <div id="agentRows"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Channel select + Send -->
+          <div>
+            <div class="card">
+              <div class="card__title" data-i18n="send.title">Send Notifications</div>
+              <div class="card__sub" id="sendSub" data-i18n="send.sub">Choose channels and send to validated customers.</div>
+
+              <div class="section-title" data-i18n="send.channels">Channels</div>
+              <div class="channel-selector">
+                <input class="ch-checkbox" type="checkbox" id="ch-mail" checked />
+                <label class="ch-label" for="ch-mail" data-ch="mail">✉ Mail</label>
+                <input class="ch-checkbox" type="checkbox" id="ch-sms" checked />
+                <label class="ch-label" for="ch-sms" data-ch="sms">💬 SMS</label>
+                <input class="ch-checkbox" type="checkbox" id="ch-whatsapp" checked />
+                <label class="ch-label" for="ch-whatsapp" data-ch="whatsapp">🟢 WhatsApp</label>
+                <input class="ch-checkbox" type="checkbox" id="ch-website" checked />
+                <label class="ch-label" for="ch-website" data-ch="website">🌐 Website</label>
+                <input class="ch-checkbox" type="checkbox" id="ch-app" checked />
+                <label class="ch-label" for="ch-app" data-ch="app">📱 App</label>
+              </div>
+
+              <button class="btn-send" id="btnSend" disabled onclick="startSending()" data-i18n="send.btn">Send Notifications</button>
+
+              <!-- Live sending progress -->
+              <div class="send-progress" id="sendProgress">
+                <div class="send-progress__title" data-i18n="send.progressTitle">Sending in progress<span class="dot-pulse"></span></div>
+                <div class="send-overall"><div class="send-overall-fill" id="sendFill"></div></div>
+                <div id="sendRows"></div>
+                <div class="summary-banner" id="summaryBanner">
+                  <span style="font-size:1.4rem">✅</span>
+                  <span id="summaryText"></span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- CSV format guide -->
+            <div class="card" style="margin-top:18px">
+              <div class="card__title" data-i18n="guide.title">CSV Format</div>
+              <div class="card__sub" data-i18n="guide.sub">Required columns for each row:</div>
+              <table style="width:100%;border-collapse:collapse;font-size:.76rem;">
+                <thead><tr>
+                  <th style="text-align:left;padding:6px 8px;background:#f8fafc;border:1px solid var(--border);" data-i18n="guide.col">Column</th>
+                  <th style="text-align:left;padding:6px 8px;background:#f8fafc;border:1px solid var(--border);" data-i18n="guide.req">Required</th>
+                  <th style="text-align:left;padding:6px 8px;background:#f8fafc;border:1px solid var(--border);" data-i18n="guide.desc">Description</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td style="padding:5px 8px;border:1px solid var(--border);font-family:monospace">name</td><td style="padding:5px 8px;border:1px solid var(--border)">✓</td><td style="padding:5px 8px;border:1px solid var(--border)" data-i18n="guide.name">Full customer name</td></tr>
+                  <tr><td style="padding:5px 8px;border:1px solid var(--border);font-family:monospace">national_id</td><td style="padding:5px 8px;border:1px solid var(--border)">✓</td><td style="padding:5px 8px;border:1px solid var(--border)" data-i18n="guide.id">National ID</td></tr>
+                  <tr><td style="padding:5px 8px;border:1px solid var(--border);font-family:monospace">email</td><td style="padding:5px 8px;border:1px solid var(--border)">✓ mail</td><td style="padding:5px 8px;border:1px solid var(--border)" data-i18n="guide.email">Email address</td></tr>
+                  <tr><td style="padding:5px 8px;border:1px solid var(--border);font-family:monospace">phone</td><td style="padding:5px 8px;border:1px solid var(--border)">✓ SMS/WA</td><td style="padding:5px 8px;border:1px solid var(--border)" data-i18n="guide.phone">Phone +972…</td></tr>
+                  <tr><td style="padding:5px 8px;border:1px solid var(--border);font-family:monospace">risk_level</td><td style="padding:5px 8px;border:1px solid var(--border)">—</td><td style="padding:5px 8px;border:1px solid var(--border)">LOW / MEDIUM / HIGH</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /page-upload -->
+
+    <!-- ── Page: Responses ── -->
+    <div class="page" id="page-responses">
+      <div class="page-content">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <div>
+            <div style="font-size:1.05rem;font-weight:800;" data-i18n="resp.pageTitle">Customer Responses</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:2px;" data-i18n="resp.pageSub">Track replies, agent auto-responses, and document validation</div>
+          </div>
+        </div>
+        <div class="resp-tabs" id="respTabs">
+          <button class="resp-tab active" onclick="filterResp('all', this)"><span data-i18n="resp.all">All</span> <span class="resp-badge" id="cnt-all"></span></button>
+          <button class="resp-tab" onclick="filterResp('responded', this)"><span data-i18n="resp.responded">Responded</span> <span class="resp-badge" id="cnt-responded"></span></button>
+          <button class="resp-tab" onclick="filterResp('pending', this)"><span data-i18n="resp.pending">Pending</span> <span class="resp-badge" id="cnt-pending"></span></button>
+          <button class="resp-tab" onclick="filterResp('has_question', this)"><span data-i18n="resp.hasQuestion">Has Question</span> <span class="resp-badge" id="cnt-has_question"></span></button>
+          <button class="resp-tab" onclick="filterResp('doc_review', this)"><span data-i18n="resp.docReview">Doc Review</span> <span class="resp-badge" id="cnt-doc_review"></span></button>
+        </div>
+        <div class="table-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="th.customer">Customer</th>
+                  <th data-i18n="resp.th.sent">Notification Sent</th>
+                  <th data-i18n="resp.th.responded">Customer Response</th>
+                  <th data-i18n="resp.th.question">Customer Question</th>
+                  <th data-i18n="resp.th.agentReply">Agent Reply</th>
+                  <th data-i18n="resp.th.docs">Documents</th>
+                  <th data-i18n="resp.th.kyc">KYC</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="respTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Page: Settings ── -->
+    <div class="page" id="page-settings">
+      <div class="page-content">
+        <div style="max-width:860px;margin:0 auto;">
+          <div style="font-size:1.05rem;font-weight:800;margin-bottom:4px;" data-i18n="settings.title">⚙️ Notification Settings</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:24px;" data-i18n="settings.sub">Configure automated resend intervals and scheduling</div>
+
+          <div class="countdown-wrap">
+            <div class="countdown-icon">⏰</div>
+            <div>
+              <div class="countdown-text" id="nextResendText">Next resend: Tomorrow at 09:00</div>
+              <div class="countdown-sub" id="nextResendSub">3 customers have not responded</div>
+            </div>
+            <button class="btn-sm" style="margin-left:auto" onclick="fireResendNow()" data-i18n="settings.sendNow">Send Now</button>
+          </div>
+
+          <div class="settings-grid">
+            <!-- Left: interval config -->
+            <div class="card">
+              <div class="card__title" data-i18n="settings.intervalTitle">Resend Interval</div>
+              <div class="card__sub" data-i18n="settings.intervalSub">Resend notification if customer has not responded after:</div>
+              <div class="interval-btns" id="intervalBtns">
+                <button class="interval-btn" onclick="setInterval_('1')" data-val="1">1 <span data-i18n="settings.day">day</span></button>
+                <button class="interval-btn active" onclick="setInterval_('3')" data-val="3">3 <span data-i18n="settings.days">days</span></button>
+                <button class="interval-btn" onclick="setInterval_('7')" data-val="7">7 <span data-i18n="settings.days">days</span></button>
+                <button class="interval-btn" onclick="setInterval_('14')" data-val="14">14 <span data-i18n="settings.days">days</span></button>
+                <button class="interval-btn" onclick="setInterval_('custom')" data-val="custom" data-i18n="settings.custom">Custom…</button>
+              </div>
+              <div class="custom-input-row" id="customIntervalRow" style="display:none">
+                <input class="number-input" type="number" id="customIntervalVal" min="1" max="90" value="5" />
+                <span data-i18n="settings.days">days</span>
+              </div>
+
+              <div style="margin-top:18px">
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label" data-i18n="settings.maxResends">Max resends</div>
+                    <div class="setting-sub" data-i18n="settings.maxResendsSub">Stop after this many attempts</div>
+                  </div>
+                  <div class="setting-control">
+                    <select class="select-input" id="maxResends">
+                      <option>1</option><option>2</option><option selected>3</option><option>5</option><option>10</option>
+                    </select>
+                    <span data-i18n="settings.attempts">attempts</span>
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label" data-i18n="settings.sendTime">Send time</div>
+                    <div class="setting-sub" data-i18n="settings.sendTimeSub">Preferred time of day (bank hours)</div>
+                  </div>
+                  <div class="setting-control">
+                    <select class="select-input" id="sendTime">
+                      <option>08:00</option><option selected>09:00</option><option>10:00</option><option>12:00</option><option>14:00</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <div class="setting-label" data-i18n="settings.channels">Resend channels</div>
+                    <div class="setting-sub" data-i18n="settings.channelsSub">Same as original send</div>
+                  </div>
+                  <div class="setting-control">
+                    <span style="font-size:.78rem;font-weight:700;color:var(--success)">✓ <span data-i18n="settings.inherited">Inherited</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:18px">
+                <button class="btn-primary" onclick="saveSettings()" data-i18n="settings.save">Save Settings</button>
+                <button class="btn-secondary" onclick="resetSettings()" data-i18n="settings.reset">Reset</button>
+              </div>
+              <div class="save-banner" id="saveBanner" data-i18n="settings.saved">✅ Settings saved successfully.</div>
+            </div>
+
+            <!-- Right: schedule preview -->
+            <div>
+              <div class="card">
+                <div class="card__title" data-i18n="settings.schedule">Upcoming Resend Schedule</div>
+                <div class="card__sub" id="scheduleSubtitle"></div>
+                <div id="scheduleList"></div>
+              </div>
+              <div class="card" style="margin-top:18px">
+                <div class="card__title" data-i18n="settings.log">Resend Log</div>
+                <div id="resendLog" style="font-size:.76rem;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Detail panel overlay ── -->
+    <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-header">
+        <div>
+          <div class="detail-header__customer" id="detailName">—</div>
+          <div class="detail-header__id" id="detailId">—</div>
+        </div>
+        <button class="detail-close" onclick="closeDetail()">✕</button>
+      </div>
+      <div class="detail-tabs">
+        <button class="detail-tab active" onclick="switchDetailTab('chat', this)" data-i18n="detail.chat">🤖 Auto-Reply</button>
+        <button class="detail-tab" onclick="switchDetailTab('docs', this)" data-i18n="detail.docs">📋 Documents</button>
+        <button class="detail-tab" onclick="switchDetailTab('answers', this)" data-i18n="detail.answers">📝 Answers</button>
+      </div>
+      <div class="detail-body">
+        <div id="detail-chat"></div>
+        <div id="detail-docs" style="display:none"></div>
+        <div id="detail-answers" style="display:none"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ── Translations ─────────────────────────────────────────────
+const T = {
+  en: {
+    brand: 'Bank KYC Portal', brandSub: 'Notification Dashboard',
+    'nav.dashboard': 'Dashboard', 'nav.upload': 'Upload & Send',
+    'topbar.title': 'KYC Notification Center', 'topbar.refresh': '↻ Refresh',
+    'th.customer': 'Customer', 'th.risk': 'Risk', 'th.trigger': 'Trigger',
+    'th.mail': '✉ Mail', 'th.sms': '💬 SMS', 'th.whatsapp': '🟢 WhatsApp',
+    'th.website': '🌐 Website', 'th.app': '📱 App',
+    'th.opened': '👁 Opened', 'th.kyc': 'KYC Status', 'th.sentAt': 'Sent At',
+    'upload.title': 'Upload Customer File',
+    'upload.sub': 'Upload a CSV with customer details. The agent will validate each row before sending.',
+    'upload.dropLabel': 'Click or drag & drop CSV file',
+    'upload.dropHint': 'CSV format · max 5 MB',
+    'upload.sample': '⬇ Download sample CSV',
+    'upload.clear': '✕ Clear',
+    'agent.validating': '🤖 Agent — Validating data',
+    'agent.done': '🤖 Agent — Validation complete',
+    'send.title': 'Send Notifications',
+    'send.sub': 'Choose channels and send to validated customers.',
+    'send.channels': 'Channels',
+    'send.btn': 'Send Notifications',
+    'send.progressTitle': 'Sending in progress',
+    'guide.title': 'CSV Format', 'guide.sub': 'Required columns for each row:',
+    'guide.col': 'Column', 'guide.req': 'Required', 'guide.desc': 'Description',
+    'guide.name': 'Full customer name', 'guide.id': 'National ID',
+    'guide.email': 'Email address', 'guide.phone': 'Phone +972…',
+    COMPLETED: 'Completed', IN_PROGRESS: 'In Progress', PENDING: 'Pending', EXPIRED: 'Expired',
+    PERIODIC_REFRESH: 'Periodic', RISK_BASED_REVIEW: 'Risk Review',
+    UNUSUAL_ACTIVITY: 'Unusual Activity', PROFILE_CHANGE: 'Profile Change',
+    FATCA_CRS_MISSING: 'FATCA/CRS', PEP_STATUS_CHANGE: 'PEP Change',
+    delivered: '✓ Delivered', opened: '👁 Opened', pending: '⏳ Pending', failed: '✗ Failed', not_sent: '—',
+    stat_total: 'Total Sent', stat_opened_rate: 'opened notification',
+    stat_mail: 'Mail', stat_sms: 'SMS', stat_wa: 'WhatsApp', stat_web: 'Website', stat_app: 'App',
+    stat_delivered: 'delivered', stat_opened: 'opened',
+    summary: (n, ch) => `✅ ${n} customers notified across ${ch} channels. Dashboard updated.`,
+    validRows: (n) => `${n} valid customer(s) ready to send.`,
+  },
+  he: {
+    brand: 'פורטל KYC בנקאי', brandSub: 'לוח בקרת התראות',
+    'nav.dashboard': 'לוח בקרה', 'nav.upload': 'העלאה ושליחה',
+    'topbar.title': 'מרכז התראות KYC', 'topbar.refresh': '↻ רענן',
+    'th.customer': 'לקוח', 'th.risk': 'סיכון', 'th.trigger': 'סיבה',
+    'th.mail': '✉ מייל', 'th.sms': '💬 SMS', 'th.whatsapp': '🟢 WhatsApp',
+    'th.website': '🌐 אתר', 'th.app': '📱 אפליקציה',
+    'th.opened': '👁 נפתח', 'th.kyc': 'סטטוס KYC', 'th.sentAt': 'נשלח בתאריך',
+    'upload.title': 'העלאת קובץ לקוחות',
+    'upload.sub': 'העלה/י קובץ CSV עם פרטי לקוחות. הסוכן יאמת כל שורה לפני השליחה.',
+    'upload.dropLabel': 'לחץ/י או גרור/י קובץ CSV',
+    'upload.dropHint': 'פורמט CSV · עד 5 MB',
+    'upload.sample': '⬇ הורד/י דוגמת CSV',
+    'upload.clear': '✕ נקה',
+    'agent.validating': '🤖 סוכן — מאמת נתונים',
+    'agent.done': '🤖 סוכן — האימות הושלם',
+    'send.title': 'שליחת התראות',
+    'send.sub': 'בחר/י ערוצים ושלח/י ללקוחות שעברו אימות.',
+    'send.channels': 'ערוצים',
+    'send.btn': 'שלח/י התראות',
+    'send.progressTitle': 'שליחה בתהליך',
+    'guide.title': 'פורמט CSV', 'guide.sub': 'עמודות נדרשות לכל שורה:',
+    'guide.col': 'עמודה', 'guide.req': 'נדרש', 'guide.desc': 'תיאור',
+    'guide.name': 'שם מלא של הלקוח', 'guide.id': 'מספר תעודת זהות',
+    'guide.email': 'כתובת דוא"ל', 'guide.phone': 'טלפון +972…',
+    COMPLETED: 'הושלם', IN_PROGRESS: 'בתהליך', PENDING: 'ממתין', EXPIRED: 'פג תוקף',
+    PERIODIC_REFRESH: 'רענון תקופתי', RISK_BASED_REVIEW: 'סקירת סיכון',
+    UNUSUAL_ACTIVITY: 'פעילות חריגה', PROFILE_CHANGE: 'שינוי פרופיל',
+    FATCA_CRS_MISSING: 'FATCA/CRS', PEP_STATUS_CHANGE: 'שינוי PEP',
+    delivered: '✓ נמסר', opened: '👁 נפתח', pending: '⏳ ממתין', failed: '✗ נכשל', not_sent: '—',
+    stat_total: 'סה"כ נשלח', stat_opened_rate: 'פתחו התראה',
+    stat_mail: 'מייל', stat_sms: 'SMS', stat_wa: 'WhatsApp', stat_web: 'אתר', stat_app: 'אפליקציה',
+    stat_delivered: 'נמסר', stat_opened: 'נפתח',
+    summary: (n, ch) => `✅ ${n} לקוחות קיבלו התראה ב-${ch} ערוצים. הדשבורד עודכן.`,
+    validRows: (n) => `${n} לקוח/ות תקינים ומוכנים לשליחה.`,
+  }
+};
+let lang = 'en';
+function t(key, ...args) {
+  const v = T[lang][key] || T.en[key] || key;
+  return typeof v === 'function' ? v(...args) : v;
+}
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.dataset.i18n;
+    if (T[lang][k] && typeof T[lang][k] === 'string') el.textContent = T[lang][k];
+  });
+  document.getElementById('filterChannel').options[0].text = lang === 'he' ? 'כל הערוצים' : 'All Channels';
+  document.getElementById('filterStatus').options[0].text  = lang === 'he' ? 'כל הסטטוסים' : 'All Statuses';
+  document.getElementById('filterKyc').options[0].text     = lang === 'he' ? 'כל הKYC'     : 'All KYC';
+  document.getElementById('searchInput').placeholder = lang === 'he' ? 'חיפוש לקוח או ת.ז…' : 'Search customer or ID…';
+  renderStats();
+  renderTable();
+}
+function setLang(l) {
+  lang = l;
+  document.documentElement.setAttribute('lang', l);
+  document.documentElement.setAttribute('dir', l === 'he' ? 'rtl' : 'ltr');
+  document.getElementById('btnEn').classList.toggle('active', l === 'en');
+  document.getElementById('btnHe').classList.toggle('active', l === 'he');
+  applyTranslations();
+}
+
+// ── Mock data ─────────────────────────────────────────────────
+const CHANNELS = ['mail','sms','whatsapp','website','app'];
+const STATUSES = ['delivered','opened','opened','delivered','pending','failed'];
+const TRIGGERS = ['PERIODIC_REFRESH','RISK_BASED_REVIEW','UNUSUAL_ACTIVITY','PROFILE_CHANGE','FATCA_CRS_MISSING'];
+const RISKS    = ['LOW','MEDIUM','HIGH'];
+const KYC_ST   = ['COMPLETED','COMPLETED','IN_PROGRESS','PENDING','EXPIRED'];
+
+function rnd(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function rndTime(hoursAgo) {
+  const d = new Date(Date.now() - hoursAgo*3600000 - Math.random()*3600000);
+  return d.toISOString();
+}
+
+const MOCK_NAMES = [
+  ['David Cohen','IL-054821','david.cohen@gmail.com','+972501234567'],
+  ['Sara Levi','IL-078432','sara.levi@walla.co.il','+972521234567'],
+  ['Alex Shapiro','IL-099123','alex.shapiro@work.il','+972541234567'],
+  ['Michal Katz','IL-031209','michal.katz@yahoo.com','+972507654321'],
+  ['Yosef Ben David','IL-056781','yosef.bd@gmail.com','+972523456789'],
+  ['Noa Greenfeld','IL-012345','noa.g@hotmail.com','+972546789012'],
+  ['Eli Peretz','IL-087654','eli.peretz@bank.co.il','+972501122334'],
+  ['Tamar Mizrahi','IL-043210','tamar.m@walla.co.il','+972529988776'],
+  ['Ron Birnbaum','IL-065432','ron.b@gmail.com','+972544455667'],
+  ['Dina Schwartz','IL-021098','dina.s@example.com','+972508877665'],
+  ['Avi Nachum','IL-076543','avi.nachum@work.il','+972521234560'],
+  ['Leah Goldstein','IL-034567','leah.g@gmail.com','+972545566778'],
+  ['Moshe Dayan','IL-089012','moshe.d@yahoo.com','+972503344556'],
+  ['Rivka Hazan','IL-047890','rivka.h@walla.co.il','+972527788990'],
+  ['Benny Koren','IL-012678','benny.k@gmail.com','+972541122334'],
+];
+
+let notifications = MOCK_NAMES.map(([name,id,email,phone], i) => {
+  const chs = {};
+  CHANNELS.forEach(ch => {
+    // Some channels not sent for variety
+    const sent = Math.random() > 0.15;
+    chs[ch] = sent ? rnd(STATUSES) : 'not_sent';
+  });
+  return {
+    id: `N-2026-${String(i+1).padStart(3,'0')}`,
+    name, nationalId: id, email, phone,
+    risk: rnd(RISKS),
+    trigger: rnd(TRIGGERS),
+    channels: chs,
+    kycStatus: rnd(KYC_ST),
+    sentAt: rndTime(i * 3 + 1),
+  };
+});
+
+// ── Stats ─────────────────────────────────────────────────────
+function computeStats() {
+  const total = notifications.length;
+  const perCh = {};
+  CHANNELS.forEach(ch => {
+    perCh[ch] = { delivered: 0, opened: 0, failed: 0, total: 0 };
+    notifications.forEach(n => {
+      const s = n.channels[ch];
+      if (s === 'not_sent') return;
+      perCh[ch].total++;
+      if (s === 'delivered') perCh[ch].delivered++;
+      if (s === 'opened')    { perCh[ch].delivered++; perCh[ch].opened++; }
+      if (s === 'failed')    perCh[ch].failed++;
+    });
+  });
+  const totalOpened = notifications.filter(n => CHANNELS.some(c => n.channels[c] === 'opened')).length;
+  return { total, perCh, totalOpened };
+}
+
+const CH_COLORS = { mail:'#2563eb', sms:'#16a34a', whatsapp:'#15803d', website:'#7c3aed', app:'#ea580c' };
+const CH_ICONS  = { mail:'✉', sms:'💬', whatsapp:'🟢', website:'🌐', app:'📱' };
+const CH_LABELS = { mail:'stat_mail', sms:'stat_sms', whatsapp:'stat_wa', website:'stat_web', app:'stat_app' };
+
+function renderStats() {
+  const { total, perCh, totalOpened } = computeStats();
+  const openedPct = Math.round(totalOpened / Math.max(total,1) * 100);
+  let html = `
+    <div class="stat-card">
+      <div class="stat-card__label">${t('stat_total')}</div>
+      <div class="stat-card__value">${total}</div>
+      <div class="stat-card__sub">
+        <span class="opened-rate ${openedPct>=60?'opened-rate--good':'opened-rate--mid'}">👁 ${totalOpened} ${t('stat_opened_rate')}</span>
+      </div>
+      <div class="stat-card__bar" style="background:var(--primary)"></div>
+      <div class="stat-card__icon">📨</div>
+    </div>`;
+  CHANNELS.forEach(ch => {
+    const d = perCh[ch];
+    const delPct = d.total ? Math.round(d.delivered/d.total*100) : 0;
+    const opPct  = d.total ? Math.round(d.opened/d.total*100)   : 0;
+    html += `
+      <div class="stat-card">
+        <div class="stat-card__label">${CH_ICONS[ch]} ${t(CH_LABELS[ch])}</div>
+        <div class="stat-card__value">${d.delivered}</div>
+        <div class="stat-card__sub">
+          <span class="opened-rate opened-rate--good">${delPct}% ${t('stat_delivered')}</span>
+          &nbsp;
+          <span class="opened-rate ${opPct>=40?'opened-rate--good':'opened-rate--mid'}">👁 ${opPct}% ${t('stat_opened')}</span>
+        </div>
+        <div class="stat-card__bar" style="background:${CH_COLORS[ch]}"></div>
+        <div class="stat-card__icon">${CH_ICONS[ch]}</div>
+      </div>`;
+  });
+  document.getElementById('statsGrid').innerHTML = html;
+  const last = notifications.length ? new Date(Math.max(...notifications.map(n=>new Date(n.sentAt)))).toLocaleString() : '—';
+  document.getElementById('topbarMeta').textContent = lang==='he' ? `עדכון אחרון: ${last}` : `Last updated: ${last}`;
+}
+
+// ── Bubble helper ─────────────────────────────────────────────
+function chBubble(status) {
+  return `<span class="ch-bubble ch-bubble--${status}">${t(status)}</span>`;
+}
+function openedSummary(channels) {
+  const openedCount = CHANNELS.filter(c => channels[c] === 'opened').length;
+  const sentCount   = CHANNELS.filter(c => channels[c] !== 'not_sent').length;
+  if (openedCount === 0) return `<span class="text-muted">—</span>`;
+  const color = openedCount >= 3 ? 'var(--opened)' : 'var(--warning)';
+  return `<div class="opened-summary">
+    <span class="opened-icon">👁</span>
+    <span class="opened-count" style="color:${color}">${openedCount}</span>
+    <span class="opened-denom">/ ${sentCount}</span>
+  </div>`;
+}
+function fmtDate(iso) {
+  return new Date(iso).toLocaleString(lang==='he'?'he-IL':'en-GB',{dateStyle:'short',timeStyle:'short'});
+}
+
+// ── Table ─────────────────────────────────────────────────────
+function renderTable() {
+  const q  = document.getElementById('searchInput').value.toLowerCase();
+  const fc = document.getElementById('filterChannel').value;
+  const fs = document.getElementById('filterStatus').value;
+  const fk = document.getElementById('filterKyc').value;
+
+  let rows = notifications.filter(n => {
+    if (q && !n.name.toLowerCase().includes(q) && !n.nationalId.toLowerCase().includes(q)) return false;
+    if (fc && n.channels[fc] === 'not_sent') return false;
+    if (fs && !CHANNELS.some(c => n.channels[c] === fs)) return false;
+    if (fk && n.kycStatus !== fk) return false;
+    return true;
+  });
+
+  if (!rows.length) {
+    document.getElementById('notifTable').innerHTML = `<tr><td colspan="11" class="empty-state">${lang==='he'?'לא נמצאו רשומות':'No records found'}</td></tr>`;
+    return;
+  }
+
+  document.getElementById('notifTable').innerHTML = rows.map(n => `
+    <tr>
+      <td>
+        <div class="customer-name">${n.name}</div>
+        <div class="customer-id">${n.nationalId}</div>
+      </td>
+      <td><span class="risk-badge risk-badge--${n.risk}">${n.risk}</span></td>
+      <td><span class="text-muted" style="font-size:.72rem">${t(n.trigger)}</span></td>
+      <td>${chBubble(n.channels.mail)}</td>
+      <td>${chBubble(n.channels.sms)}</td>
+      <td>${chBubble(n.channels.whatsapp)}</td>
+      <td>${chBubble(n.channels.website)}</td>
+      <td>${chBubble(n.channels.app)}</td>
+      <td>${openedSummary(n.channels)}</td>
+      <td><span class="kyc-pill kyc-pill--${n.kycStatus}">${t(n.kycStatus)}</span></td>
+      <td style="white-space:nowrap;font-size:.72rem;color:var(--muted)">${fmtDate(n.sentAt)}</td>
+    </tr>`).join('');
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+function refreshDashboard() {
+  renderStats(); renderTable();
+}
+
+// ── File upload ───────────────────────────────────────────────
+let parsedRows = [], validRows = [];
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,'_'));
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g,''));
+    return Object.fromEntries(headers.map((h,i) => [h, vals[i]||'']));
+  });
+}
+
+function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    parsedRows = parseCSV(e.target.result);
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileRows').textContent = `${parsedRows.length} ${lang==='he'?'שורות':'rows'}`;
+    document.getElementById('filePreview').classList.add('visible');
+    runAgent();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const fakeInput = { files: [file] };
+  handleFileUpload(fakeInput);
+}
+function clearFile() {
+  parsedRows = []; validRows = [];
+  document.getElementById('filePreview').classList.remove('visible');
+  document.getElementById('agentPanel').classList.remove('visible');
+  document.getElementById('sendProgress').classList.remove('visible');
+  document.getElementById('summaryBanner').classList.remove('visible');
+  document.getElementById('btnSend').disabled = true;
+  document.getElementById('csvFile').value = '';
+  document.getElementById('sendSub').textContent = t('send.sub');
+}
+
+// ── Validation agent ──────────────────────────────────────────
+function validateRow(row) {
+  const issues = [];
+  if (!row.name || row.name.length < 2) issues.push(lang==='he'?'שם חסר':'missing name');
+  if (!row.national_id && !row.id)       issues.push(lang==='he'?'ת.ז חסרה':'missing ID');
+  if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) issues.push(lang==='he'?'מייל לא תקין':'invalid email');
+  if (row.phone && !/^\+?[\d\s\-]{8,15}$/.test(row.phone))         issues.push(lang==='he'?'טלפון לא תקין':'invalid phone');
+  if (!row.email && !row.phone) issues.push(lang==='he'?'חסר מייל וטלפון':'no email or phone');
+  return issues;
+}
+
+async function runAgent() {
+  const panel = document.getElementById('agentPanel');
+  panel.classList.add('visible');
+  document.getElementById('agentTitle').textContent = t('agent.validating');
+  document.getElementById('agentSpinner').style.display = 'block';
+  document.getElementById('agentRows').innerHTML = '';
+  document.getElementById('agentFill').style.width = '0%';
+  document.getElementById('btnSend').disabled = true;
+  validRows = [];
+
+  for (let i = 0; i < parsedRows.length; i++) {
+    await delay(180);
+    const row = parsedRows[i];
+    const issues = validateRow(row);
+    const valid = issues.length === 0;
+    if (valid) validRows.push(row);
+    const pct = Math.round((i+1)/parsedRows.length*100);
+    document.getElementById('agentFill').style.width = pct + '%';
+    const name = row.name || row.national_id || `Row ${i+1}`;
+    const div = document.createElement('div');
+    div.className = 'agent-row';
+    div.innerHTML = `
+      <span class="agent-row__status">${valid ? '✅' : issues.length > 1 ? '❌' : '⚠️'}</span>
+      <span class="agent-row__name">${name}</span>
+      ${valid ? '' : `<span class="agent-row__issues">${issues.join(' · ')}</span>`}
+    `;
+    document.getElementById('agentRows').appendChild(div);
+  }
+
+  document.getElementById('agentSpinner').style.display = 'none';
+  document.getElementById('agentTitle').textContent = t('agent.done');
+  document.getElementById('sendSub').textContent = t('send.validRows', validRows.length) || T[lang].validRows(validRows.length);
+  if (validRows.length > 0) document.getElementById('btnSend').disabled = false;
+}
+
+// ── Sending ───────────────────────────────────────────────────
+async function startSending() {
+  const selected = CHANNELS.filter(ch => document.getElementById('ch-'+ch).checked);
+  if (!selected.length) return;
+
+  document.getElementById('btnSend').disabled = true;
+  const prog = document.getElementById('sendProgress');
+  prog.classList.add('visible');
+  document.getElementById('summaryBanner').classList.remove('visible');
+  document.getElementById('sendRows').innerHTML = '';
+  document.getElementById('sendFill').style.width = '0%';
+
+  const rows = validRows.slice();
+  // Build DOM rows
+  const domRows = rows.map(row => {
+    const div = document.createElement('div');
+    div.className = 'send-row';
+    const bubblesHtml = selected.map(ch =>
+      `<span class="send-bubble send-bubble--waiting" id="sb-${row.national_id||row.name}-${ch}">${CH_ICONS[ch]} ${t(CH_LABELS[ch])}</span>`
+    ).join('');
+    div.innerHTML = `<div class="send-row__name">${row.name||row.national_id}</div><div class="send-row__channels">${bubblesHtml}</div>`;
+    document.getElementById('sendRows').appendChild(div);
+    return { row, div };
+  });
+
+  let done = 0;
+  const total = rows.length * selected.length;
+
+  for (const { row } of domRows) {
+    for (const ch of selected) {
+      const id = `sb-${row.national_id||row.name}-${ch}`;
+      const bubble = document.getElementById(id);
+      if (bubble) { bubble.className = 'send-bubble send-bubble--sending'; bubble.textContent = CH_ICONS[ch] + ' …'; }
+      await delay(280 + Math.random()*200);
+      const success = Math.random() > 0.08;
+      if (bubble) {
+        bubble.className = `send-bubble send-bubble--${success?'done':'failed'}`;
+        bubble.textContent = `${CH_ICONS[ch]} ${success ? (lang==='he'?'נמסר':'Sent') : (lang==='he'?'נכשל':'Failed')}`;
+      }
+      done++;
+      document.getElementById('sendFill').style.width = Math.round(done/total*100) + '%';
+    }
+    await delay(120);
+    // Add to dashboard notifications
+    const newNotif = {
+      id: `N-2026-${String(notifications.length+1).padStart(3,'0')}`,
+      name: row.name || '—',
+      nationalId: row.national_id || row.id || '—',
+      email: row.email || '',
+      phone: row.phone || '',
+      risk: (row.risk_level || 'LOW').toUpperCase(),
+      trigger: 'PERIODIC_REFRESH',
+      channels: Object.fromEntries(CHANNELS.map(ch => [ch, selected.includes(ch) ? (Math.random()>0.08?'delivered':'failed') : 'not_sent'])),
+      kycStatus: 'PENDING',
+      sentAt: new Date().toISOString(),
+    };
+    notifications.unshift(newNotif);
+  }
+
+  document.getElementById('sendFill').style.width = '100%';
+  const banner = document.getElementById('summaryBanner');
+  banner.classList.add('visible');
+  document.getElementById('summaryText').textContent = T[lang].summary(rows.length, selected.length);
+  document.getElementById('btnSend').disabled = false;
+  renderStats();
+  renderTable();
+}
+
+// ── Sample CSV ────────────────────────────────────────────────
+function downloadSample(e) {
+  e.preventDefault();
+  const csv = [
+    'name,national_id,email,phone,risk_level',
+    'Yael Rosenthal,IL-112233,yael.r@example.com,+972501112233,LOW',
+    'Gideon Bar-Lev,IL-445566,gideon.bl@gmail.com,+972529988776,MEDIUM',
+    'Tali Amrani,IL-778899,tali.a@work.il,+972543344556,HIGH',
+    'Omer Klein,,omer.k@example.com,,LOW',
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'kyc_customers_sample.csv'; a.click();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Extra translations ────────────────────────────────────────
+Object.assign(T.en, {
+  'nav.responses': 'Responses', 'nav.settings': 'Settings',
+  'resp.pageTitle': 'Customer Responses',
+  'resp.pageSub': 'Track replies, agent auto-responses, and document validation',
+  'resp.all': 'All', 'resp.responded': 'Responded', 'resp.pending': 'Pending',
+  'resp.hasQuestion': 'Has Question', 'resp.docReview': 'Doc Review',
+  'resp.th.sent': 'Notification Sent', 'resp.th.responded': 'Customer Response',
+  'resp.th.question': 'Customer Question', 'resp.th.agentReply': 'Agent Reply',
+  'resp.th.docs': 'Documents', 'resp.th.kyc': 'KYC',
+  'resp.noResp': '— Awaiting', 'resp.viewDetail': 'View →',
+  'detail.chat': '🤖 Auto-Reply', 'detail.docs': '📋 Documents', 'detail.answers': '📝 Answers',
+  'settings.title': '⚙️ Notification Settings',
+  'settings.sub': 'Configure automated resend intervals and scheduling',
+  'settings.intervalTitle': 'Resend Interval',
+  'settings.intervalSub': 'Resend notification if customer has not responded after:',
+  'settings.day': 'day', 'settings.days': 'days', 'settings.custom': 'Custom…',
+  'settings.maxResends': 'Max resends', 'settings.maxResendsSub': 'Stop after this many attempts',
+  'settings.attempts': 'attempts', 'settings.sendTime': 'Send time',
+  'settings.sendTimeSub': 'Preferred time of day (bank hours)',
+  'settings.channels': 'Resend channels', 'settings.channelsSub': 'Same as original send',
+  'settings.inherited': 'Inherited', 'settings.save': 'Save Settings',
+  'settings.reset': 'Reset', 'settings.saved': '✅ Settings saved successfully.',
+  'settings.schedule': 'Upcoming Resend Schedule', 'settings.log': 'Resend Log',
+  'settings.sendNow': 'Send Now',
+  'settings.nextResend': (n, t) => `Next resend: ${t} · ${n} customer(s) pending`,
+  'doc.scanning': '🔍 Scanning…', 'doc.valid': '✅ Valid', 'doc.warning': '⚠️ Review', 'doc.invalid': '❌ Invalid',
+  'agent.approved': '✓ Auto-approved', 'agent.pending': 'Pending approval',
+  'agent.approve': 'Approve', 'agent.override': 'Override',
+  'agent.replyLabel': '🤖 Agent Auto-Reply',
+  'agent.noQ': 'No question from this customer.',
+  'doc.noDoc': 'No documents uploaded by this customer.',
+  'answers.title': 'KYC Questionnaire Answers',
+});
+Object.assign(T.he, {
+  'nav.responses': 'תשובות', 'nav.settings': 'הגדרות',
+  'resp.pageTitle': 'תשובות לקוחות',
+  'resp.pageSub': 'מעקב אחר מענה לקוחות, תגובות סוכן אוטומטי ואימות מסמכים',
+  'resp.all': 'הכל', 'resp.responded': 'הגיבו', 'resp.pending': 'ממתינים',
+  'resp.hasQuestion': 'שאלות פתוחות', 'resp.docReview': 'בדיקת מסמכים',
+  'resp.th.sent': 'נשלח בתאריך', 'resp.th.responded': 'תגובת הלקוח',
+  'resp.th.question': 'שאלת הלקוח', 'resp.th.agentReply': 'תגובת הסוכן',
+  'resp.th.docs': 'מסמכים', 'resp.th.kyc': 'סטטוס KYC',
+  'resp.noResp': '— ממתין', 'resp.viewDetail': 'צפה ←',
+  'detail.chat': '🤖 מענה אוטומטי', 'detail.docs': '📋 מסמכים', 'detail.answers': '📝 תשובות',
+  'settings.title': '⚙️ הגדרות התראות',
+  'settings.sub': 'הגדר תדירות שליחה חוזרת ולוח זמנים',
+  'settings.intervalTitle': 'תדירות שליחה חוזרת',
+  'settings.intervalSub': 'שלח שוב אם הלקוח לא הגיב לאחר:',
+  'settings.day': 'יום', 'settings.days': 'ימים', 'settings.custom': 'מותאם…',
+  'settings.maxResends': 'מקסימום שליחות חוזרות', 'settings.maxResendsSub': 'עצור לאחר ניסיונות אלו',
+  'settings.attempts': 'ניסיונות', 'settings.sendTime': 'שעת שליחה',
+  'settings.sendTimeSub': 'שעת היום המועדפת (שעות בנק)',
+  'settings.channels': 'ערוצי שליחה חוזרת', 'settings.channelsSub': 'זהה לשליחה המקורית',
+  'settings.inherited': 'בירושה', 'settings.save': 'שמור הגדרות',
+  'settings.reset': 'אפס', 'settings.saved': '✅ ההגדרות נשמרו בהצלחה.',
+  'settings.schedule': 'לוח שליחות קרובות', 'settings.log': 'יומן שליחות חוזרות',
+  'settings.sendNow': 'שלח עכשיו',
+  'settings.nextResend': (n, tm) => `שליחה חוזרת הבאה: ${tm} · ${n} לקוחות ממתינים`,
+  'doc.scanning': '🔍 סורק…', 'doc.valid': '✅ תקין', 'doc.warning': '⚠️ לבדיקה', 'doc.invalid': '❌ לא תקין',
+  'agent.approved': '✓ אושר אוטומטית', 'agent.pending': 'ממתין לאישור',
+  'agent.approve': 'אשר', 'agent.override': 'עקוף',
+  'agent.replyLabel': '🤖 תגובת סוכן אוטומטי',
+  'agent.noQ': 'אין שאלה מלקוח זה.',
+  'doc.noDoc': 'לקוח זה לא העלה מסמכים.',
+  'answers.title': 'תשובות שאלון KYC',
+});
+
+// ── Mock Response Data ────────────────────────────────────────
+const CUSTOMER_QUESTIONS = [
+  'Why do I need to upload a salary slip? Is this mandatory?',
+  'I have been with the bank for 10 years. Why do I need to go through this again?',
+  'Can I submit documents at a branch instead of uploading them here?',
+  null, null, null, null, null,
+  'I declared my income as above ₪50,000 — will this affect my account?',
+  'What is a Politically Exposed Person (PEP)?',
+  null, null,
+  'I do not have a digital copy of my ID. What should I do?',
+  null, null,
+];
+
+const AGENT_REPLIES = [
+  'Under Bank of Israel Directive 411, we are required to verify declared income with supporting documentation. A salary slip or recent bank statement (last 3 months) is the accepted standard. This is mandatory for your account tier.',
+  'Periodic KYC reviews are required by law regardless of relationship length. The Prevention of Money Laundering Law (2000) mandates regular updates to ensure your profile remains accurate and compliant.',
+  'Yes — you may visit any branch with your original documents. A branch representative will digitize and submit them on your behalf. Please bring your national ID.',
+  null, null, null, null, null,
+  'Declaring a higher income helps us ensure your account limits and transaction types are aligned with your financial profile. It does not negatively impact your account standing.',
+  'A Politically Exposed Person (PEP) is someone who holds or has held a prominent public role — for example, a senior government official, politician, military officer, or judge, or a close family member of such a person.',
+  null, null,
+  'You can photograph both sides of your ID card using your phone camera and upload the images directly in JPEG or PNG format. Alternatively, visit any branch for in-person submission.',
+  null, null,
+];
+
+const DOC_SETS = [
+  [{ name: 'salary_slip_june_2026.pdf', type: 'INCOME_PROOF', status: 'valid', size: '245 KB', fields: { 'Employee': 'David Cohen', 'Employer': 'Tech Ltd', 'Month': 'June 2026', 'Net salary': '₪22,400' }, note: 'All fields present · Matches declared income bracket FROM_15K_TO_30K' },
+   { name: 'national_id_scan.jpg', type: 'ID_DOCUMENT', status: 'valid', size: '1.2 MB', fields: { 'Name': 'David Cohen', 'ID No.': 'IL-054821', 'DOB': '15/06/1985', 'Valid until': '03/2029' }, note: 'Identity confirmed · Document not expired' }],
+  [{ name: 'bank_statement_q2.pdf', type: 'INCOME_PROOF', status: 'warning', size: '512 KB', fields: { 'Account holder': 'Sara Levi', 'Period': 'Apr–Jun 2026', 'Avg. balance': '₪38,200', 'Issuer': 'Bank Poalim' }, note: '⚠️ Statement older than 3 months — please resubmit a more recent one' }],
+  [],
+  [{ name: 'passport_photo.jpg', type: 'ID_DOCUMENT', status: 'valid', size: '890 KB', fields: { 'Name': 'Michal Katz', 'Passport No.': 'PX-8821034', 'Nationality': 'Israeli', 'Expiry': '11/2031' }, note: 'Passport valid · Name matches customer record' },
+   { name: 'income_certificate.pdf', type: 'INCOME_PROOF', status: 'valid', size: '180 KB', fields: { 'Employer': 'HMO Services', 'Employee': 'Michal Katz', 'Annual income': '₪192,000', 'Date': '01/06/2026' }, note: 'Official employer certificate · Within income bracket' }],
+  [],
+  [{ name: 'business_reg.pdf', type: 'BUSINESS_REG', status: 'valid', size: '340 KB', fields: { 'Business name': 'Greenfeld Solutions', 'Owner': 'Noa Greenfeld', 'Registration': '515-882-311', 'Active since': '2018' }, note: 'Business registration confirmed · Active entity' }],
+  [], [],
+  [{ name: 'salary_june.pdf', type: 'INCOME_PROOF', status: 'invalid', size: '95 KB', fields: { 'Name': '—', 'Amount': '—', 'Issuer': 'Unknown', 'Date': '—' }, note: '❌ Document appears corrupted or incomplete — re-upload required' }],
+  [], [], [],
+  [{ name: 'id_front.jpg', type: 'ID_DOCUMENT', status: 'warning', size: '650 KB', fields: { 'Name': 'Moshe Dayan', 'ID No.': 'IL-089012', 'Valid until': '—' }, note: '⚠️ Expiry date not visible — please upload both sides of the ID card' }],
+  [], [],
+];
+
+const MOCK_RESPONSES = MOCK_NAMES.map(([name,id,email,phone], i) => ({
+  id: `N-2026-${String(i+1).padStart(3,'0')}`,
+  name, nationalId: id, email, phone,
+  sentAt: notifications[i]?.sentAt || new Date(Date.now() - i*3600000*3).toISOString(),
+  respondedAt: i % 3 !== 1 ? new Date(Date.now() - i*3600000*2 + 5400000).toISOString() : null,
+  kycCompleted: i % 3 !== 1 && i !== 8,
+  customerQuestion: CUSTOMER_QUESTIONS[i] || null,
+  agentReply: AGENT_REPLIES[i] || null,
+  agentReplyStatus: AGENT_REPLIES[i] ? (i % 5 === 0 ? 'pending' : 'approved') : null,
+  agentReplyAt: AGENT_REPLIES[i] ? new Date(Date.now() - i*3600000*2 + 5460000).toISOString() : null,
+  documents: DOC_SETS[i] || [],
+  answers: {
+    employment: ['EMPLOYED','SELF_EMPLOYED','BUSINESS_OWNER','RETIRED','EMPLOYED'][i%5],
+    income: ['FROM_5K_TO_15K','FROM_15K_TO_30K','ABOVE_50K','FROM_30K_TO_50K','UNDER_5K'][i%5],
+    activity: ['UNDER_5K','FROM_5K_TO_15K','FROM_15K_TO_30K','UNDER_5K','FROM_5K_TO_15K'][i%5],
+    international: ['NO','YES','NO','NO','YES'][i%5],
+    taxResident: ['NO','NO','YES','NO','NO'][i%5],
+    pep: 'NO',
+    sourceOfFunds: ['SALARY','BUSINESS_INCOME','INVESTMENT_RETURNS','PENSION','SALARY'][i%5],
+  },
+}));
+
+// ── Responses page ────────────────────────────────────────────
+let currentRespFilter = 'all';
+
+function filterResp(f, el) {
+  currentRespFilter = f;
+  document.querySelectorAll('.resp-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderRespTable();
+}
+
+function renderRespTable() {
+  const rows = MOCK_RESPONSES.filter(r => {
+    if (currentRespFilter === 'responded')   return !!r.respondedAt;
+    if (currentRespFilter === 'pending')     return !r.respondedAt;
+    if (currentRespFilter === 'has_question')return !!r.customerQuestion;
+    if (currentRespFilter === 'doc_review')  return r.documents.some(d => d.status !== 'valid');
+    return true;
+  });
+
+  // Update badges
+  document.getElementById('cnt-all').textContent          = MOCK_RESPONSES.length;
+  document.getElementById('cnt-responded').textContent    = MOCK_RESPONSES.filter(r=>r.respondedAt).length;
+  document.getElementById('cnt-pending').textContent      = MOCK_RESPONSES.filter(r=>!r.respondedAt).length;
+  document.getElementById('cnt-has_question').textContent = MOCK_RESPONSES.filter(r=>r.customerQuestion).length;
+  document.getElementById('cnt-doc_review').textContent   = MOCK_RESPONSES.filter(r=>r.documents.some(d=>d.status!=='valid')).length;
+
+  const pending = MOCK_RESPONSES.filter(r=>!r.respondedAt).length;
+  const nb = document.getElementById('responseBadgeNav');
+  nb.textContent = pending || '';
+
+  document.getElementById('respTable').innerHTML = rows.map(r => {
+    const docOk    = r.documents.length ? r.documents.every(d=>d.status==='valid') : null;
+    const docBadge = r.documents.length === 0 ? '<span class="text-muted">—</span>'
+      : docOk ? `<span class="doc-verdict doc-verdict--valid">${t('doc.valid')} ×${r.documents.length}</span>`
+      : `<span class="doc-verdict doc-verdict--warning">${t('doc.warning')} ×${r.documents.filter(d=>d.status!=='valid').length}</span>`;
+
+    const qBadge   = r.customerQuestion ? `<span class="has-msg">💬 ${lang==='he'?'שאלה':'Question'}</span>` : '<span class="text-muted">—</span>';
+    const agBadge  = r.agentReply
+      ? (r.agentReplyStatus==='approved'
+          ? `<span class="doc-verdict doc-verdict--valid">${t('agent.approved')}</span>`
+          : `<span class="doc-verdict doc-verdict--warning">${t('agent.pending')}</span>`)
+      : '<span class="text-muted">—</span>';
+
+    return `<tr style="cursor:pointer" onclick="openDetail('${r.id}')">
+      <td><div class="customer-name">${r.name}</div><div class="customer-id">${r.nationalId}</div></td>
+      <td style="font-size:.72rem;color:var(--muted)">${fmtDate(r.sentAt)}</td>
+      <td>${r.respondedAt ? `<span class="doc-verdict doc-verdict--valid">✓ ${fmtDate(r.respondedAt)}</span>` : `<span class="kyc-pill kyc-pill--PENDING">${t('resp.noResp')}</span>`}</td>
+      <td>${qBadge}</td>
+      <td>${agBadge}</td>
+      <td>${docBadge}</td>
+      <td>${r.kycCompleted ? `<span class="kyc-pill kyc-pill--COMPLETED">${t('COMPLETED')}</span>` : `<span class="kyc-pill kyc-pill--PENDING">${t('PENDING')}</span>`}</td>
+      <td><button class="btn-sm" onclick="event.stopPropagation();openDetail('${r.id}')">${t('resp.viewDetail')}</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8" class="empty-state">${lang==='he'?'אין תוצאות':'No results'}</td></tr>`;
+}
+
+// ── Detail panel ──────────────────────────────────────────────
+let activeDetailTab = 'chat';
+let currentDetailId = null;
+
+function openDetail(id) {
+  currentDetailId = id;
+  const r = MOCK_RESPONSES.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('detailName').textContent = r.name;
+  document.getElementById('detailId').textContent   = r.nationalId + ' · ' + r.email;
+  document.getElementById('detailOverlay').classList.add('open');
+  document.getElementById('detailPanel').classList.add('open');
+  activeDetailTab = 'chat';
+  document.querySelectorAll('.detail-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  renderDetailChat(r);
+  renderDetailDocs(r);
+  renderDetailAnswers(r);
+  document.getElementById('detail-chat').style.display = '';
+  document.getElementById('detail-docs').style.display = 'none';
+  document.getElementById('detail-answers').style.display = 'none';
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+function switchDetailTab(tab, el) {
+  activeDetailTab = tab;
+  document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['chat','docs','answers'].forEach(id => {
+    document.getElementById('detail-' + id).style.display = id === tab ? '' : 'none';
+  });
+}
+
+function renderDetailChat(r) {
+  const wrap = document.getElementById('detail-chat');
+  if (!r.customerQuestion) {
+    wrap.innerHTML = `<p style="color:var(--muted);font-size:.82rem;text-align:center;padding:30px 0">🤖 ${t('agent.noQ')}</p>`;
+    return;
+  }
+  const approved = r.agentReplyStatus === 'approved';
+  wrap.innerHTML = `
+    <div class="chat-wrap">
+      <div>
+        <div class="chat-bubble chat-bubble--customer">${r.customerQuestion}</div>
+        <div class="chat-meta">${r.name} · ${fmtDate(r.respondedAt || r.sentAt)}</div>
+      </div>
+      ${r.agentReply ? `
+      <div style="text-align:right">
+        <div class="agent-label">${t('agent.replyLabel')} · <span style="color:${approved?'var(--success)':'var(--warning)'}">${t(approved?'agent.approved':'agent.pending')}</span></div>
+        <div class="chat-bubble chat-bubble--agent">${r.agentReply}</div>
+        <div class="chat-meta chat-meta--right">${fmtDate(r.agentReplyAt)} · ${lang==='he'?'סוכן KYC אוטומטי':'KYC Auto-Agent'}</div>
+        ${!approved ? `<div class="reply-actions" style="justify-content:flex-end">
+          <button class="btn-approve" onclick="approveReply('${r.id}')">${t('agent.approve')}</button>
+          <button class="btn-override" onclick="overrideReply('${r.id}')">${t('agent.override')}</button>
+        </div>` : ''}
+      </div>` : '<div class="chat-bubble chat-bubble--processing dot-pulse">' + (lang==='he'?'סוכן מגיב':'Agent composing reply') + '</div>'}
+    </div>`;
+}
+
+function renderDetailDocs(r) {
+  const wrap = document.getElementById('detail-docs');
+  if (!r.documents.length) {
+    wrap.innerHTML = `<p style="color:var(--muted);font-size:.82rem;text-align:center;padding:30px 0">📋 ${t('doc.noDoc')}</p>`;
+    return;
+  }
+  wrap.innerHTML = `<div style="margin-bottom:10px;font-size:.78rem;font-weight:800;color:var(--muted)">${lang==='he'?'סוכן בדיקת מסמכים':'Document Validation Agent'} · ${lang==='he'?'ניתוח אוטומטי':'Automated analysis'}</div>` +
+    r.documents.map(d => {
+      const verdictClass = { valid:'doc-verdict--valid', warning:'doc-verdict--warning', invalid:'doc-verdict--invalid' }[d.status] || 'doc-verdict--scanning';
+      const verdictText  = t('doc.' + d.status);
+      const fieldRows = Object.entries(d.fields).map(([k,v]) =>
+        `<div class="doc-field"><span class="doc-field__label">${k}:</span>&nbsp;<span class="doc-field__value">${v||'—'}</span></div>`).join('');
+      return `<div class="doc-item">
+        <div class="doc-item__header">
+          <span style="font-size:1.3rem">📄</span>
+          <span class="doc-item__name">${d.name}</span>
+          <span class="doc-item__size">${d.size}</span>
+          <span class="doc-verdict ${verdictClass}">${verdictText}</span>
+        </div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">${d.type.replace(/_/g,' ')}</div>
+        <div class="doc-fields">${fieldRows}</div>
+        <div class="doc-note">${d.note}</div>
+      </div>`;
+    }).join('');
+}
+
+function renderDetailAnswers(r) {
+  const labels = {
+    employment: lang==='he'?'תעסוקה':'Employment',
+    income: lang==='he'?'הכנסה חודשית':'Monthly Income',
+    activity: lang==='he'?'פעילות חשבון':'Account Activity',
+    international: lang==='he'?'פעילות בינלאומית':'International',
+    taxResident: lang==='he'?'תושבות מס':'Tax Resident',
+    pep: 'PEP',
+    sourceOfFunds: lang==='he'?'מקור כספים':'Source of Funds',
+  };
+  const answers = r.answers || {};
+  document.getElementById('detail-answers').innerHTML = `
+    <div style="font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:12px">${t('answers.title')}</div>
+    <div class="answers-grid">
+      ${Object.entries(answers).map(([k,v]) => `
+        <div class="answer-item">
+          <div class="answer-item__label">${labels[k]||k}</div>
+          <div class="answer-item__value">${v.replace(/_/g,' ')}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function approveReply(id) {
+  const r = MOCK_RESPONSES.find(x => x.id === id);
+  if (r) { r.agentReplyStatus = 'approved'; openDetail(id); renderRespTable(); }
+}
+function overrideReply(id) {
+  const r = MOCK_RESPONSES.find(x => x.id === id);
+  if (r) { r.agentReply = null; r.agentReplyStatus = null; renderDetailChat(r); }
+}
+
+// ── Settings page ─────────────────────────────────────────────
+let intervalDays = 3;
+const RESEND_LOG = [
+  { at: '2026-06-24T09:00:00', customers: 4, channels: 5 },
+  { at: '2026-06-21T09:00:00', customers: 7, channels: 5 },
+  { at: '2026-06-18T09:00:00', customers: 2, channels: 3 },
+];
+
+function setInterval_(val) {
+  document.querySelectorAll('.interval-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+  document.getElementById('customIntervalRow').style.display = val === 'custom' ? 'flex' : 'none';
+  intervalDays = val === 'custom' ? parseInt(document.getElementById('customIntervalVal').value)||5 : parseInt(val);
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const pending = MOCK_RESPONSES.filter(r => !r.respondedAt);
+  const sendTime = document.getElementById('sendTime')?.value || '09:00';
+  const batches = [
+    { label: `${lang==='he'?'מחר':'Tomorrow'} ${sendTime}`, count: Math.min(3, pending.length), badge: 'soon' },
+    { label: lang==='he'?`בעוד ${intervalDays} ימים`:`In ${intervalDays} days`, count: Math.min(5, pending.length), badge: 'later' },
+    { label: lang==='he'?`בעוד ${intervalDays*2} ימים`:`In ${intervalDays*2} days`, count: Math.max(0, pending.length-5), badge: 'later' },
+  ];
+  document.getElementById('scheduleSubtitle').textContent = lang==='he'
+    ? `${pending.length} לקוחות ממתינים לשליחה חוזרת`
+    : `${pending.length} customers scheduled for resend`;
+  document.getElementById('scheduleList').innerHTML = batches.map(b => `
+    <div class="schedule-item">
+      <div><div class="schedule-item__time">${b.label}</div><div class="schedule-item__count">${b.count} ${lang==='he'?'לקוחות':'customers'}</div></div>
+      <span class="schedule-item__badge schedule-item__badge--${b.badge}">${b.badge==='soon'?(lang==='he'?'בקרוב':'Soon'):(lang==='he'?'מתוכנן':'Scheduled')}</span>
+    </div>`).join('');
+
+  document.getElementById('nextResendText').textContent = lang==='he'
+    ? `שליחה חוזרת הבאה: מחר ${sendTime}`
+    : `Next resend: Tomorrow at ${sendTime}`;
+  document.getElementById('nextResendSub').textContent = lang==='he'
+    ? `${pending.length} לקוחות לא הגיבו`
+    : `${pending.length} customers have not responded`;
+
+  document.getElementById('resendLog').innerHTML = RESEND_LOG.map(l =>
+    `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.75rem">
+      <span>${fmtDate(l.at)}</span>
+      <span style="color:var(--muted)">${l.customers} ${lang==='he'?'לקוחות, ':'customers, '} ${l.channels} ${lang==='he'?'ערוצים':'channels'}</span>
+      <span class="doc-verdict doc-verdict--valid" style="font-size:.63rem">✓ ${lang==='he'?'נשלח':'Sent'}</span>
+    </div>`).join('') || `<p style="color:var(--muted);font-size:.76rem;padding:8px 0">${lang==='he'?'אין שליחות קודמות':'No resends yet'}</p>`;
+}
+
+function saveSettings() {
+  intervalDays = document.getElementById('customIntervalRow')?.style.display !== 'none'
+    ? parseInt(document.getElementById('customIntervalVal').value)||intervalDays
+    : intervalDays;
+  const banner = document.getElementById('saveBanner');
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 3000);
+  renderSchedule();
+}
+
+function resetSettings() {
+  setInterval_('3');
+  document.getElementById('maxResends').value = '3';
+  document.getElementById('sendTime').value   = '09:00';
+}
+
+function fireResendNow() {
+  const pending = MOCK_RESPONSES.filter(r => !r.respondedAt);
+  RESEND_LOG.unshift({ at: new Date().toISOString(), customers: pending.length, channels: 5 });
+  renderSchedule();
+  const banner = document.getElementById('saveBanner');
+  banner.textContent = lang==='he'
+    ? `✅ שליחה חוזרת הופעלה ל-${pending.length} לקוחות`
+    : `✅ Resend triggered for ${pending.length} customers`;
+  banner.classList.add('show');
+  setTimeout(() => { banner.classList.remove('show'); banner.textContent = t('settings.saved'); }, 3000);
+}
+
+// ── Override showPage to init sub-pages ───────────────────────
+const _origShowPage = showPage;
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (id === 'responses') renderRespTable();
+  if (id === 'settings')  renderSchedule();
+}
+
+// ── Init ──────────────────────────────────────────────────────
+renderStats();
+renderTable();
+renderSchedule();
+</script>
+</body>
+</html>

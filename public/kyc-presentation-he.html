@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>מערכת KYC דיגיטלית — מצגת</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #002a56; --navy2: #003f7f; --navy3: #1a5ca8;
+    --gold: #f0b429; --gold2: #fcd34d;
+    --green: #10b981; --green2: #34d399;
+    --red: #ef4444; --amber: #f59e0b; --purple: #8b5cf6;
+    --white: #ffffff; --off: #e2e8f0; --muted: #94a3b8;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+  }
+  html, body { height: 100%; width: 100%; font-family: var(--font); background: #000; overflow: hidden; }
+
+  /* ── Slides ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 48px 72px;
+    opacity: 0; pointer-events: none;
+    transform: translateX(-60px);
+    transition: opacity .45s ease, transform .45s ease;
+    text-align: center;
+  }
+  .slide.active { opacity: 1; pointer-events: all; transform: translateX(0); }
+  .slide.exit   { opacity: 0; transform: translateX(60px); }
+
+  .bg-dark  { background: linear-gradient(135deg, #001a3a 0%, #002a56 60%, #003f7f 100%); }
+  .bg-mid   { background: linear-gradient(135deg, #00213f 0%, #002f66 100%); }
+  .bg-light { background: linear-gradient(135deg, #0a1f3d 0%, #00234a 100%); }
+  .bg-agent { background: linear-gradient(135deg, #0d1f38 0%, #1a1040 100%); }
+
+  .slide::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  /* ── Typography ── */
+  .slide-label { font-size: .65rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+  .slide-title { font-size: 2.6rem; font-weight: 900; color: var(--white); line-height: 1.15; letter-spacing: -.01em; margin-bottom: 12px; }
+  .slide-title span { color: var(--gold); }
+  .slide-sub   { font-size: 1.05rem; color: var(--muted); line-height: 1.7; max-width: 680px; }
+  .slide-sub b { color: var(--off); }
+  .divider { width: 60px; height: 3px; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 2px; margin: 14px auto; }
+
+  /* ── Tags ── */
+  .tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+  .tag-gold   { background: rgba(240,180,41,.15); color: var(--gold);  border: 1px solid rgba(240,180,41,.3); }
+  .tag-green  { background: rgba(16,185,129,.15);  color: var(--green2); border: 1px solid rgba(16,185,129,.3); }
+  .tag-blue   { background: rgba(59,130,246,.15);  color: #93c5fd;     border: 1px solid rgba(59,130,246,.3); }
+  .tag-red    { background: rgba(239,68,68,.15);   color: #fca5a5;     border: 1px solid rgba(239,68,68,.3); }
+  .tag-purple { background: rgba(139,92,246,.15);  color: #c4b5fd;     border: 1px solid rgba(139,92,246,.3); }
+  .tags-row   { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 18px; }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center; flex-direction: row-reverse; }
+  .flow-box {
+    padding: 10px 16px; border-radius: 10px; font-size: .78rem; font-weight: 700;
+    border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06);
+    color: var(--off); white-space: nowrap; text-align: center; line-height: 1.3; min-width: 90px;
+  }
+  .flow-box small { display: block; font-size: .62rem; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .flow-box.highlight { background: rgba(240,180,41,.15); border-color: rgba(240,180,41,.4); color: var(--gold); }
+  .flow-box.green     { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); color: var(--green2); }
+  .flow-box.red       { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.35);  color: #fca5a5; }
+  .flow-box.purple    { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.35); color: #c4b5fd; }
+  .flow-box.blue      { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.35); color: #93c5fd; }
+  .flow-arrow { color: rgba(255,255,255,.3); font-size: 1.1rem; padding: 0 6px; flex-shrink: 0; }
+  .flow-arrow-down { color: rgba(255,255,255,.3); font-size: 1.1rem; text-align: center; margin: 4px 0; }
+
+  /* ── Cards ── */
+  .cards { display: grid; gap: 14px; width: 100%; max-width: 920px; }
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cards-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px; padding: 18px 16px; text-align: right;
+  }
+  .card__icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .card__title { font-size: .82rem; font-weight: 800; color: var(--off); margin-bottom: 4px; }
+  .card__body  { font-size: .72rem; color: var(--muted); line-height: 1.6; }
+  .card--gold   { border-color: rgba(240,180,41,.3); background: rgba(240,180,41,.06); }
+  .card--green  { border-color: rgba(16,185,129,.3); background: rgba(16,185,129,.06); }
+  .card--blue   { border-color: rgba(59,130,246,.3); background: rgba(59,130,246,.06); }
+  .card--purple { border-color: rgba(139,92,246,.3); background: rgba(139,92,246,.06); }
+  .card--red    { border-color: rgba(239,68,68,.3);  background: rgba(239,68,68,.06); }
+
+  /* ── Table ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+  .data-table th { padding: 8px 14px; background: rgba(255,255,255,.07); color: var(--muted); font-size: .65rem; text-transform: uppercase; letter-spacing: .06em; text-align: right; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid rgba(255,255,255,.05); color: var(--off); text-align: right; }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* ── Architecture ── */
+  .arch { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 820px; }
+  .arch-layer { border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; flex-direction: row-reverse; }
+  .arch-layer__label { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; width: 90px; flex-shrink: 0; text-align: right; }
+  .arch-layer__boxes { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; justify-content: flex-end; }
+  .arch-box { padding: 6px 12px; border-radius: 7px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+
+  /* ── Decision tree ── */
+  .dtree { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .dtree-node { padding: 9px 20px; border-radius: 8px; font-size: .76rem; font-weight: 700; text-align: center; min-width: 160px; }
+  .dtree-branches { display: flex; gap: 16px; align-items: flex-start; justify-content: center; }
+  .dtree-branch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .dtree-label { font-size: .6rem; color: var(--muted); font-weight: 700; }
+  .dtree-connector { width: 1px; height: 16px; background: rgba(255,255,255,.2); }
+
+  /* ── Channels ── */
+  .ch-grid { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .ch-card { width: 120px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 14px 10px; text-align: center; }
+  .ch-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .ch-name { font-size: .72rem; font-weight: 800; color: var(--off); margin-bottom: 8px; }
+  .ch-status { display: flex; flex-direction: column; gap: 4px; }
+  .ch-pill { font-size: .6rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .pill-green { background: rgba(16,185,129,.2);  color: var(--green2); }
+  .pill-blue  { background: rgba(59,130,246,.2);  color: #93c5fd; }
+
+  /* ── Big stats ── */
+  .big-stats { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+  .big-stat { text-align: center; }
+  .big-stat__num   { font-size: 3rem; font-weight: 900; color: var(--gold); line-height: 1; }
+  .big-stat__label { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
+  /* ── Agent bubbles ── */
+  .agent-flow { display: flex; flex-direction: column; gap: 10px; max-width: 620px; width: 100%; text-align: right; }
+  .bubble { padding: 10px 14px; border-radius: 12px; font-size: .78rem; line-height: 1.6; }
+  .bubble-customer { background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.25); color: #bfdbfe; border-bottom-right-radius: 3px; align-self: flex-end; }
+  .bubble-agent    { background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.25); color: #a7f3d0; border-bottom-left-radius: 3px; align-self: flex-start; }
+  .bubble-meta     { font-size: .62rem; color: var(--muted); margin-top: 3px; }
+  .bubble-meta-l   { text-align: left; }
+
+  /* ── Nav ── */
+  .nav { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; z-index: 100; }
+  .nav-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.25); cursor: pointer; transition: all .2s; }
+  .nav-dot.active { background: var(--gold); transform: scale(1.3); }
+  .nav-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07); color: #fff; font-size: 1rem; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; }
+  .nav-btn:hover { background: rgba(255,255,255,.15); }
+  .slide-counter { position: fixed; top: 22px; left: 28px; font-size: .72rem; color: rgba(255,255,255,.35); letter-spacing: .06em; z-index: 100; }
+  .key-hint { position: fixed; top: 22px; right: 28px; font-size: .65rem; color: rgba(255,255,255,.2); }
+
+  /* ── Verdict pills ── */
+  .verdict-green  { background: rgba(16,185,129,.2); color: var(--green2); border: 1px solid rgba(16,185,129,.3); padding: 2px 8px; border-radius: 20px; font-size: .62rem; font-weight: 700; }
+  .verdict-amber  { background: rgba(245,158,11,.15); color: #fcd34d;      border: 1px solid rgba(245,158,11,.3); padding: 2px 8px; border-radius: 20px; font-size: .62rem; font-weight: 700; }
+  .verdict-red    { background: rgba(239,68,68,.15);  color: #fca5a5;      border: 1px solid rgba(239,68,68,.3);  padding: 2px 8px; border-radius: 20px; font-size: .62rem; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ── שקופית 1: כותרת ── -->
+  <div class="slide bg-dark active" data-slide="1">
+    <div style="font-size:3rem;margin-bottom:16px">🏦</div>
+    <div class="slide-label">בנק פועלים · דיגיטציה ושינוי</div>
+    <div class="slide-title">מערכת עדכון <span>KYC</span> דיגיטלית</div>
+    <div class="divider"></div>
+    <div class="slide-sub">פלטפורמה אוטומטית מקצה לקצה לאימות זהות לקוחות — רב-ערוצית, דו-לשונית, מבוססת בינה מלאכותית, ועומדת בדרישות הרגולציה הבנקאית בישראל.</div>
+    <div class="tags-row">
+      <span class="tag tag-gold">עמידה בדרישות AML / CFT</span>
+      <span class="tag tag-green">FATCA · CRS · PEP</span>
+      <span class="tag tag-blue">5 ערוצי התראה</span>
+      <span class="tag tag-purple">סוכני בינה מלאכותית</span>
+      <span class="tag tag-gold">עברית · אנגלית · RTL</span>
+    </div>
+  </div>
+
+  <!-- ── שקופית 2: למה KYC ── -->
+  <div class="slide bg-mid" data-slide="2">
+    <div class="slide-label">רקע ורגולציה</div>
+    <div class="slide-title">למה <span>KYC</span> חשוב?</div>
+    <div class="slide-sub" style="margin-bottom:28px">בנקים מחויבים בחוק לאמת מעת לעת את זהות לקוחותיהם, הכנסתם ופעילותם הפיננסית — כדי למנוע הלבנת הון, הונאה והפרת סנקציות.</div>
+    <div class="cards cards-3" style="max-width:860px">
+      <div class="card card--gold">
+        <div class="card__icon">⚖️</div>
+        <div class="card__title">בסיס חוקי</div>
+        <div class="card__body">חוק איסור הלבנת הון (2000) · הוראת בנק ישראל 411 · FATCA · CRS</div>
+      </div>
+      <div class="card card--red">
+        <div class="card__icon">⚠️</div>
+        <div class="card__title">הבעיה הישנה</div>
+        <div class="card__body">ביקור ידני בסניף · טפסי נייר · נתונים לא עקביים · אין מעקב · שיעור נטישה גבוה</div>
+      </div>
+      <div class="card card--green">
+        <div class="card__icon">✅</div>
+        <div class="card__title">הפתרון שלנו</div>
+        <div class="card__body">שירות עצמי דיגיטלי מלא · התראות רב-ערוציות · אימות בבינה מלאכותית · דשבורד ציות בזמן אמת</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 3: ארכיטקטורה ── -->
+  <div class="slide bg-light" data-slide="3">
+    <div class="slide-label">ארכיטקטורה טכנית</div>
+    <div class="slide-title" style="font-size:2rem">רכיבי <span>המערכת</span></div>
+    <div class="arch" style="margin-top:22px">
+      <div class="arch-layer" style="background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.2)">
+        <div class="arch-layer__label" style="color:var(--gold)">לקוח</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">📱 אפליקציה</span>
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">🌐 דפדפן</span>
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">💬 קישור SMS / WhatsApp</span>
+          <span class="arch-box" style="background:rgba(240,180,41,.15);color:var(--gold)">✉ קישור מייל</span>
+        </div>
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.9rem">↕ HTTPS</div>
+      <div class="arch-layer" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2)">
+        <div class="arch-layer__label" style="color:#93c5fd">Frontend</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">⚛ React — שאלון KYC</span>
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">🌍 דו-לשוני EN/HE · RTL</span>
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">📎 העלאת מסמכים</span>
+          <span class="arch-box" style="background:rgba(59,130,246,.15);color:#93c5fd">📊 דשבורד ניהול</span>
+        </div>
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.9rem">↕ REST API</div>
+      <div class="arch-layer" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2)">
+        <div class="arch-layer__label" style="color:var(--green2)">Backend</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">🔧 Express API Routes</span>
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">🧠 מנוע חוקים</span>
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">📋 בונה שאלונים</span>
+          <span class="arch-box" style="background:rgba(16,185,129,.15);color:var(--green2)">📝 רישום ביקורת</span>
+        </div>
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.2);font-size:.9rem">↕ אינטגרציות</div>
+      <div class="arch-layer" style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2)">
+        <div class="arch-layer__label" style="color:#c4b5fd">מערכות</div>
+        <div class="arch-layer__boxes">
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">🏛 ליבת הבנק / CRM</span>
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">🔍 סינון AML</span>
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">🚨 PEP / סנקציות</span>
+          <span class="arch-box" style="background:rgba(139,92,246,.15);color:#c4b5fd">💾 מאגר ביקורת</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 4: זרימה מקצה לקצה ── -->
+  <div class="slide bg-dark" data-slide="4">
+    <div class="slide-label">מסע הלקוח</div>
+    <div class="slide-title" style="font-size:2rem">זרימה <span>מקצה לקצה</span></div>
+    <div style="margin-top:20px;width:100%;max-width:900px">
+      <!-- שורה 1 -->
+      <div style="margin-bottom:4px;font-size:.6rem;color:var(--muted);text-align:right;padding-right:4px;letter-spacing:.06em">1 · טריגר ושליחת התראה</div>
+      <div class="flow">
+        <div class="flow-box highlight">🔔 טריגר<small>13 סוגים</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box blue">📤 התראה ללקוח<small>5 ערוצים</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box green">✉ מייל</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">💬 SMS</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">🟢 WhatsApp</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">🌐 אתר</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box green">📱 אפליקציה</div>
+      </div>
+      <div class="flow-arrow-down" style="text-align:right;padding-right:52px">↓</div>
+      <!-- שורה 2 -->
+      <div style="margin-bottom:4px;font-size:.6rem;color:var(--muted);text-align:right;padding-right:4px;letter-spacing:.06em">2 · סשן הלקוח</div>
+      <div class="flow">
+        <div class="flow-box">🌐 בחירת שפה<small>עב / EN</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box">🔐 אימות<small>OTP / ביומטרי</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box highlight">📋 שאלון<small>מותאם סיכון</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box blue">📎 העלאת מסמכים<small>בהתאם לצורך</small></div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box">👁 סקירה</div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-box">✅ שליחה</div>
+      </div>
+      <div class="flow-arrow-down" style="text-align:left;padding-left:10px">↓</div>
+      <!-- שורה 3 -->
+      <div style="margin-bottom:4px;font-size:.6rem;color:var(--muted);text-align:right;padding-right:4px;letter-spacing:.06em">3 · החלטה</div>
+      <div class="flow" style="justify-content:flex-start">
+        <div class="flow-box green">🤖 השלמה אוטומטית</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d">🔎 סקירה קלה</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box" style="background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.3);color:#fdba74">📂 סקירת ציות</div>
+        <div class="flow-arrow" style="color:rgba(255,255,255,.15)">·</div>
+        <div class="flow-box red">🚫 הגבלה</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">🧠 מנוע חוקים<small>ניקוד סיכון</small></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box purple">📊 דשבורד<small>מעקב הכל</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 5: ערוצי ההתראה ── -->
+  <div class="slide bg-mid" data-slide="5">
+    <div class="slide-label">שכבת ההתראות</div>
+    <div class="slide-title">מסירה ב-<span>5 ערוצים</span></div>
+    <div class="slide-sub" style="margin-bottom:24px">כל לקוח מקבל התראה בכל הערוצים הזמינים בו-זמנית. הדשבורד עוקב אחר <b>סטטוס מסירה</b> ו<b>פתיחת ההודעה</b> לכל ערוץ.</div>
+    <div class="ch-grid">
+      <div class="ch-card"><div class="ch-icon">✉</div><div class="ch-name">מייל</div><div class="ch-status"><span class="ch-pill pill-green">✓ נמסר</span><span class="ch-pill pill-blue">👁 קישור נלחץ</span></div></div>
+      <div class="ch-card"><div class="ch-icon">💬</div><div class="ch-name">SMS</div><div class="ch-status"><span class="ch-pill pill-green">✓ נמסר</span><span class="ch-pill pill-blue">👁 קישור נלחץ</span></div></div>
+      <div class="ch-card"><div class="ch-icon">🟢</div><div class="ch-name">WhatsApp</div><div class="ch-status"><span class="ch-pill pill-green">✓ נמסר</span><span class="ch-pill pill-blue">👁 קריאה נרשמה</span></div></div>
+      <div class="ch-card"><div class="ch-icon">🌐</div><div class="ch-name">אתר</div><div class="ch-status"><span class="ch-pill pill-green">✓ באנר הוצג</span><span class="ch-pill pill-blue">👁 עמוד נצפה</span></div></div>
+      <div class="ch-card"><div class="ch-icon">📱</div><div class="ch-name">אפליקציה</div><div class="ch-status"><span class="ch-pill pill-green">✓ פוש נמסר</span><span class="ch-pill pill-blue">👁 נלחץ</span></div></div>
+    </div>
+    <div class="tags-row" style="margin-top:20px">
+      <span class="tag tag-gold">שליחה חוזרת אוטומטית אחרי N ימים ללא מענה</span>
+      <span class="tag tag-green">מספר הניסיונות ניתן להגדרה</span>
+      <span class="tag tag-blue">יומן מסירה ופתיחה מלא בדשבורד</span>
+    </div>
+  </div>
+
+  <!-- ── שקופית 6: שאלון חכם ── -->
+  <div class="slide bg-light" data-slide="6">
+    <div class="slide-label">שאלון חכם</div>
+    <div class="slide-title">שאלות <span>מותאמות סיכון</span></div>
+    <div style="display:flex;gap:20px;width:100%;max-width:920px;margin-top:18px;align-items:flex-start">
+      <div style="flex:1">
+        <table class="data-table">
+          <thead><tr><th>סעיף</th><th>נמוך</th><th>בינוני</th><th>גבוה / גבוה מאוד</th></tr></thead>
+          <tbody>
+            <tr><td>אימות זהות</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>תעסוקה</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>הכנסה ומקורה</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>מקור כספים</td><td style="color:var(--muted)">—</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>מקור עושר</td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>פעילות חשבון</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>העברות בינלאומיות</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>תושבות מס / FATCA / CRS</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>הצהרת PEP</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>בעלות נהנים</td><td style="color:var(--muted)">—</td><td style="color:var(--muted)">—</td><td style="color:var(--green2)">✓</td></tr>
+            <tr><td>העלאת מסמכים</td><td style="color:var(--muted)">—</td><td style="color:var(--gold)">חלקי</td><td style="color:var(--green2)">✓ מלא</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="width:210px;display:flex;flex-direction:column;gap:10px">
+        <div class="card card--gold">
+          <div class="card__title">מסלול מהיר לסיכון נמוך</div>
+          <div class="card__body">לקוחות חוזרים בסיכון נמוך עם נתונים מלאים מקבלים שאלון מינימלי של 7 שאלות בלבד.</div>
+        </div>
+        <div class="card card--blue">
+          <div class="card__title">ענפי שאלות תנאיים</div>
+          <div class="card__body">שאלות המשך מופיעות אוטומטית לפי תשובות קודמות — למשל פרטי מדינות רק אם הועברות בינלאומיות = כן.</div>
+        </div>
+        <div class="card card--green">
+          <div class="card__title">מילוי מראש מ-CRM</div>
+          <div class="card__body">תשובות ידועות ממאגר נתוני הלקוח ממולאות מראש; הלקוח מאשר או מעדכן.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 7: מסמכים ── -->
+  <div class="slide bg-dark" data-slide="7">
+    <div class="slide-label">העלאת מסמכים</div>
+    <div class="slide-title">מסמכים <span>תומכים</span></div>
+    <div style="display:flex;gap:20px;width:100%;max-width:920px;margin-top:16px;align-items:flex-start">
+      <div style="flex:1">
+        <table class="data-table">
+          <thead><tr><th>מסמך</th><th>תנאי</th><th>רמת סיכון</th></tr></thead>
+          <tbody>
+            <tr><td>📄 הוכחת הכנסה<br><small style="color:var(--muted)">תלוש שכר / דפי חשבון</small></td><td>תמיד נדרש</td><td><span class="tag tag-gold" style="font-size:.6rem">בינוני ומעלה</span></td></tr>
+            <tr><td>🪪 ת.ז / דרכון<br><small style="color:var(--muted)">שני צדדים נדרשים</small></td><td>תמיד נדרש</td><td><span class="tag tag-red" style="font-size:.6rem">גבוה ומעלה</span></td></tr>
+            <tr><td>📜 ראיה למקור כספים<br><small style="color:var(--muted)">מכתב ירושה, הסכם מכירה…</small></td><td>מקור = ירושה / נדל"ן / הלוואה / מתנה / אחר</td><td><span class="tag tag-red" style="font-size:.6rem">גבוה ומעלה</span></td></tr>
+            <tr><td>🏢 רישום עסק<br><small style="color:var(--muted)">תעודת רישום או רישיון</small></td><td>תעסוקה = עצמאי / בעל עסק</td><td><span class="tag tag-red" style="font-size:.6rem">גבוה ומעלה</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="width:200px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:.65rem;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:4px">תהליך העלאה</div>
+        <div class="flow-box blue" style="text-align:center">📎 גרור ושחרר<br><small>PDF · JPG · PNG · 10MB</small></div>
+        <div class="flow-arrow-down">↓</div>
+        <div class="flow-box purple" style="text-align:center">🔍 סוכן אימות מסמכים<br><small>זיהוי סוג · חילוץ שדות</small></div>
+        <div class="flow-arrow-down">↓</div>
+        <div class="flow-box green" style="text-align:center">✅ תקין<br><small>שם · תאריך · תוקף · התאמה</small></div>
+        <div style="display:flex;justify-content:center;color:rgba(255,255,255,.3);font-size:.9rem">↕</div>
+        <div class="flow-box" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#fcd34d;text-align:center">⚠ נדרשת בדיקה<br><small>מועבר לאנליסט</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 8: מנוע חוקים ── -->
+  <div class="slide bg-mid" data-slide="8">
+    <div class="slide-label">מנוע ציות</div>
+    <div class="slide-title">ניקוד סיכון <span>והחלטה</span></div>
+    <div style="display:flex;gap:24px;width:100%;max-width:920px;margin-top:16px;align-items:flex-start">
+      <div style="flex:1">
+        <div style="font-size:.65rem;font-weight:800;color:var(--muted);letter-spacing:.06em;margin-bottom:8px">התאמות ניקוד</div>
+        <table class="data-table">
+          <thead><tr><th>חוק</th><th>השפעה</th><th>דגל</th></tr></thead>
+          <tbody>
+            <tr><td>התאמה לרשימת סנקציות</td><td style="color:#fca5a5;font-weight:700">+35</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">קשה</span></td></tr>
+            <tr><td>הצהרת PEP</td><td style="color:#fca5a5;font-weight:700">+25</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">קשה</span></td></tr>
+            <tr><td>אי-התאמה הכנסה/פעילות ≥2 מדרגות</td><td style="color:#fca5a5;font-weight:700">+25</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">קשה</span></td></tr>
+            <tr><td>חשיפה למדינת סיכון גבוה</td><td style="color:#fca5a5;font-weight:700">+20</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">קשה</span></td></tr>
+            <tr><td>מקור כספים לא ידוע</td><td style="color:#fca5a5;font-weight:700">+20</td><td><span class="tag tag-red" style="font-size:.58rem;padding:1px 6px">קשה</span></td></tr>
+            <tr><td>אי-התאמה הכנסה/פעילות מדרגה אחת</td><td style="color:#fcd34d;font-weight:700">+8</td><td><span class="tag tag-gold" style="font-size:.58rem;padding:1px 6px">רך</span></td></tr>
+            <tr><td>תושבות מס בחו"ל</td><td style="color:#fcd34d;font-weight:700">+5</td><td><span class="tag tag-gold" style="font-size:.58rem;padding:1px 6px">רך</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="width:240px">
+        <div style="font-size:.65rem;font-weight:800;color:var(--muted);letter-spacing:.06em;margin-bottom:10px">עץ החלטות</div>
+        <div class="dtree">
+          <div class="dtree-node" style="background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.25);color:#93c5fd">ניקוד 0–100<br><small style="font-size:.6rem;color:var(--muted)">מוגבל ל-100</small></div>
+          <div class="dtree-connector"></div>
+          <div class="dtree-node" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.25);color:#c4b5fd">קיימים דגלים קשים?</div>
+          <div style="display:flex;gap:8px">
+            <div class="dtree-branch">
+              <div class="dtree-label">סנקציות</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:.7rem;padding:6px 10px">🚫 הגבלה</div>
+            </div>
+            <div class="dtree-branch">
+              <div class="dtree-label">אחרים</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:#fdba74;font-size:.7rem;padding:6px 10px">📂 סקירת ציות</div>
+            </div>
+          </div>
+          <div class="dtree-connector"></div>
+          <div class="dtree-node" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.25);color:#c4b5fd">≥2 דגלים רכים?</div>
+          <div style="display:flex;gap:8px">
+            <div class="dtree-branch">
+              <div class="dtree-label">כן</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fcd34d;font-size:.7rem;padding:6px 10px">🔎 סקירה קלה</div>
+            </div>
+            <div class="dtree-branch">
+              <div class="dtree-label">לא</div>
+              <div class="dtree-connector"></div>
+              <div class="dtree-node" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--green2);font-size:.7rem;padding:6px 10px">✅ השלמה אוטומטית</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 9: דשבורד ── -->
+  <div class="slide bg-light" data-slide="9">
+    <div class="slide-label">ניהול וציות</div>
+    <div class="slide-title"><span>דשבורד</span> ניהולי</div>
+    <div class="cards cards-2" style="max-width:860px;margin-top:18px">
+      <div class="card card--blue">
+        <div class="card__icon">📊</div>
+        <div class="card__title">מעקב התראות</div>
+        <div class="card__body">בועות סטטוס לכל לקוח ולכל ערוץ: <b style="color:#93c5fd">✓ נמסר · 👁 נפתח · ⏳ ממתין · ✗ נכשל</b>. כרטיסי סטטיסטיקה עם שיעורי פתיחה לכל ערוץ.</div>
+      </div>
+      <div class="card card--gold">
+        <div class="card__icon">📤</div>
+        <div class="card__title">העלאה ושליחה המונית</div>
+        <div class="card__body">גרירת קובץ CSV של לקוחות. סוכן אימות בודק כל שורה. בחירת ערוצים. אנימציית שליחה חיה לכל לקוח וערוץ.</div>
+      </div>
+      <div class="card card--green">
+        <div class="card__icon">📬</div>
+        <div class="card__title">מעקב תשובות</div>
+        <div class="card__body">מי הגיב, מתי, והאם שלח שאלה. סוכן מענה אוטומטי מנסח תשובה. סוכן אימות מסמכים מנתח העלאות. מנהל מאשר או עוקף.</div>
+      </div>
+      <div class="card card--purple">
+        <div class="card__icon">⚙️</div>
+        <div class="card__title">הגדרות שליחה חוזרת</div>
+        <div class="card__body">הגדרת מרווח שליחה חוזרת (1/3/7/14/מותאם), מספר ניסיונות מרבי, שעת שליחה. תצוגה מקדימה של לוח זמנים חי ויומן שליחות.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 10: סוכני AI ── -->
+  <div class="slide bg-agent" data-slide="10">
+    <div class="slide-label">בינה מלאכותית</div>
+    <div class="slide-title"><span>סוכנים</span> אוטומטיים</div>
+    <div style="display:flex;gap:28px;width:100%;max-width:920px;margin-top:18px;align-items:flex-start">
+      <!-- סוכן מענה -->
+      <div style="flex:1">
+        <div style="font-size:.65rem;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:12px">🤖 סוכן מענה אוטומטי</div>
+        <div class="agent-flow">
+          <div style="align-self:flex-end">
+            <div class="bubble bubble-customer">למה אני צריך להעלות תלוש שכר? האם זה חובה?</div>
+            <div class="bubble-meta">דוד כהן · 10:45</div>
+          </div>
+          <div>
+            <div style="font-size:.62rem;color:var(--green2);margin-bottom:4px">🤖 סוכן KYC אוטומטי · אושר אוטומטית ✓</div>
+            <div class="bubble bubble-agent">מכוח הוראת בנק ישראל 411, אנו מחויבים לאמת את ההכנסה שהוצהרה באמצעות תיעוד תומך. תלוש שכר עדכני הוא התיעוד המקובל לדרגת החשבון שלך.</div>
+            <div class="bubble-meta bubble-meta-l">10:46 · זמן תגובה 74ms</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="tag tag-green" style="font-size:.62rem">✓ אשר</span>
+            <span class="tag" style="font-size:.62rem;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:var(--muted)">עקוף</span>
+          </div>
+        </div>
+      </div>
+      <!-- סוכן מסמכים -->
+      <div style="flex:1">
+        <div style="font-size:.65rem;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:12px">📋 סוכן אימות מסמכים</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px 14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-direction:row-reverse">
+              <span style="font-size:1.2rem">📄</span>
+              <span style="font-size:.78rem;font-weight:700;color:var(--off);flex:1;text-align:right">תלוש_שכר_יוני.pdf · 245 KB</span>
+              <span class="verdict-green">✅ תקין</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.68rem;color:var(--muted)">
+              <span>סוג: <b style="color:var(--off)">תלוש שכר</b></span>
+              <span>עובד: <b style="color:var(--off)">דוד כהן</b></span>
+              <span>חודש: <b style="color:var(--off)">יוני 2026</b></span>
+              <span>נטו: <b style="color:var(--off)">₪22,400</b></span>
+            </div>
+            <div style="font-size:.66rem;color:var(--green2);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">כל השדות קיימים · תואם לטווח ההכנסה שהוצהר</div>
+          </div>
+          <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-direction:row-reverse">
+              <span style="font-size:1.2rem">📄</span>
+              <span style="font-size:.78rem;font-weight:700;color:var(--off);flex:1;text-align:right">סריקת_תעודת_זהות.jpg · 890 KB</span>
+              <span class="verdict-amber">⚠ לבדיקה</span>
+            </div>
+            <div style="font-size:.66rem;color:#fcd34d;margin-top:4px">תאריך תפוגה לא גלוי — נדרשים שני צדי תעודת הזהות</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── שקופית 11: סיכום ── -->
+  <div class="slide bg-dark" data-slide="11">
+    <div class="slide-label">סיכום</div>
+    <div class="slide-title">מה <span>בנינו</span></div>
+    <div class="divider"></div>
+    <div class="big-stats">
+      <div class="big-stat"><div class="big-stat__num">13</div><div class="big-stat__label">סוגי טריגר</div></div>
+      <div class="big-stat"><div class="big-stat__num">5</div><div class="big-stat__label">ערוצי התראה</div></div>
+      <div class="big-stat"><div class="big-stat__num">23</div><div class="big-stat__label">שאלות בבנק</div></div>
+      <div class="big-stat"><div class="big-stat__num">10</div><div class="big-stat__label">חוקי מנוע</div></div>
+      <div class="big-stat"><div class="big-stat__num">2</div><div class="big-stat__label">סוכני AI</div></div>
+    </div>
+    <div class="cards cards-3" style="max-width:800px;margin-top:28px">
+      <div class="card">
+        <div class="card__title">🌍 דו-לשוני ונגיש</div>
+        <div class="card__body">ממשק מלא בעברית ואנגלית עם פריסת RTL. הלקוח בוחר שפה לפני תחילת השאלון.</div>
+      </div>
+      <div class="card">
+        <div class="card__title">⚖️ עמידה רגולטורית מלאה</div>
+        <div class="card__body">AML/CFT · FATCA · CRS · סינון PEP. כל פעולה נרשמת ביומן ביקורת בלתי ניתן לשינוי.</div>
+      </div>
+      <div class="card">
+        <div class="card__title">🤖 בינה מלאכותית</div>
+        <div class="card__body">סוכן מענה אוטומטי עונה על שאלות לקוחות. סוכן מסמכים מאמת העלאות בזמן אמת.</div>
+      </div>
+    </div>
+    <div style="margin-top:22px;font-size:.78rem;color:var(--muted)">
+      פתח את הדמו: <span style="color:var(--gold);font-family:monospace">public/kyc-demo.html</span> &nbsp;·&nbsp; דשבורד: <span style="color:var(--gold);font-family:monospace">public/kyc-dashboard.html</span>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<div class="key-hint">→ ← לניווט</div>
+<div class="slide-counter" id="counter">1 / 11</div>
+<div class="nav" id="navBar"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  let current  = 0;
+
+  const nav = document.getElementById('navBar');
+  nav.innerHTML =
+    `<button class="nav-btn" onclick="go(-1)">›</button>` +
+    Array.from({length: total}, (_,i) =>
+      `<div class="nav-dot ${i===0?'active':''}" onclick="goTo(${i})"></div>`
+    ).join('') +
+    `<button class="nav-btn" onclick="go(1)">‹</button>`;
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 460);
+    current = n;
+    slides[current].classList.add('active');
+    document.querySelectorAll('.nav-dot').forEach((d,i) => d.classList.toggle('active', i === current));
+    document.getElementById('counter').textContent = `${current+1} / ${total}`;
+  }
+
+  function go(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp')                    { e.preventDefault(); go(-1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End')  goTo(total - 1);
+  });
+
+  document.getElementById('deck').addEventListener('click', e => {
+    if (!e.target.closest('.nav') && !e.target.closest('.nav-btn') && !e.target.closest('.nav-dot')) go(1);
+  });
+</script>
+</body>
+</html>

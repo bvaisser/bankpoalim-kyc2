@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital KYC — Bank Demo</title>
+  <link rel="stylesheet" href="kyc-demo.css" />
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ── Header ──────────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="app-header__inner">
+        <div class="app-header__logo">
+          <span class="logo-icon" aria-hidden="true">🏦</span>
+          <span class="logo-text">Bank KYC Portal</span>
+        </div>
+        <a href="kyc-dashboard.html" class="app-header__badge" id="dashboardLink" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:999px;padding:4px 12px;font-size:0.7rem;font-weight:700;letter-spacing:0.06em;color:#fff;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">📊 <span data-i18n="header.dashboard">Dashboard</span></a>
+        <div class="app-header__badge" id="riskBadge">Low Risk</div>
+      </div>
+    </header>
+
+    <!-- ── Main content ────────────────────────────────────── -->
+    <main class="kyc-main" id="kycMain">
+
+      <!-- Screen –1: Language Selection -->
+      <section class="kyc-screen active" id="screenLanguage" aria-label="Language Selection">
+        <div class="lang-select-wrap">
+          <div class="lang-globe" aria-hidden="true">🌐</div>
+          <h1 class="kyc-title">שפה&nbsp;/&nbsp;Language</h1>
+          <p class="kyc-subtitle">בחר/י שפה &nbsp;·&nbsp; Choose your language</p>
+          <div class="lang-options">
+            <button class="lang-btn" onclick="setLanguage('he')">
+              <span class="lang-flag">🇮🇱</span>
+              <span class="lang-name">עברית</span>
+              <span class="lang-sub">Hebrew</span>
+            </button>
+            <button class="lang-btn" onclick="setLanguage('en')">
+              <span class="lang-flag">🇬🇧</span>
+              <span class="lang-name">English</span>
+              <span class="lang-sub">אנגלית</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 0: Notification / Entry -->
+      <section class="kyc-screen" id="screenNotification" aria-label="KYC Notification">
+        <div class="notif-icon" aria-hidden="true">🔔</div>
+        <h1 class="kyc-title" data-i18n="notif.title">Action Required</h1>
+        <p class="kyc-subtitle" data-i18n="notif.subtitle">We need to update your profile information to comply with banking regulations.</p>
+
+        <div class="info-card">
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="notif.customer">Customer</span>
+            <span class="info-card__value" id="customerName">David Cohen</span>
+          </div>
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="notif.trigger">Trigger</span>
+            <span class="info-card__value" data-i18n="notif.triggerValue">Annual KYC Refresh</span>
+          </div>
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="notif.deadline">Deadline</span>
+            <span class="info-card__value deadline" data-i18n="notif.deadlineValue">30 days remaining</span>
+          </div>
+        </div>
+
+        <div class="legal-box">
+          <p data-i18n="notif.legal">Required under the Prevention of Money Laundering Law (2000) and Bank of Israel Directive 411.</p>
+        </div>
+
+        <button class="btn btn--primary btn--full" onclick="goTo('screenAuth')" data-i18n="notif.start">
+          Start Verification →
+        </button>
+        <button class="btn btn--ghost btn--full" onclick="goTo('screenNotify')" data-i18n="notif.remind">
+          Remind Me Later
+        </button>
+      </section>
+
+      <!-- Screen 1: Authentication -->
+      <section class="kyc-screen" id="screenAuth" aria-label="Authentication">
+        <div class="auth-icon" aria-hidden="true">🔐</div>
+        <h2 class="kyc-title" data-i18n="auth.title">Verify Your Identity</h2>
+        <p class="kyc-subtitle" data-i18n="auth.subtitle">Choose how you'd like to authenticate before proceeding.</p>
+
+        <div class="auth-methods">
+          <button class="auth-method-btn active" onclick="selectAuth(this, 'biometric')">
+            <span class="auth-method-btn__icon" aria-hidden="true">👆</span>
+            <span data-i18n="auth.biometric">Face ID / Touch ID</span>
+            <span class="auth-method-btn__tag" data-i18n="auth.recommended">Recommended</span>
+          </button>
+          <button class="auth-method-btn" onclick="selectAuth(this, 'otp')">
+            <span class="auth-method-btn__icon" aria-hidden="true">📱</span>
+            <span data-i18n="auth.sms">SMS One-Time Password</span>
+          </button>
+          <button class="auth-method-btn" onclick="selectAuth(this, 'password')">
+            <span class="auth-method-btn__icon" aria-hidden="true">🔑</span>
+            <span data-i18n="auth.password">Password + PIN</span>
+          </button>
+        </div>
+
+        <div class="otp-container" id="otpContainer" style="display:none">
+          <label class="field-label" for="otpInput" data-i18n="auth.otpLabel">Enter the 6-digit code sent to your phone</label>
+          <input
+            class="otp-input"
+            id="otpInput"
+            type="text"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            inputmode="numeric"
+            placeholder="_ _ _ _ _ _"
+            autocomplete="one-time-code"
+          />
+          <button class="btn btn--link" onclick="resendOtp()" data-i18n="auth.resend">Resend code</button>
+        </div>
+
+        <button class="btn btn--primary btn--full" onclick="authenticate()" data-i18n="auth.cta">
+          Authenticate &amp; Continue
+        </button>
+        <button class="btn btn--ghost btn--full" onclick="goTo('screenNotification')" data-i18n="ui.back">
+          ← Back
+        </button>
+      </section>
+
+      <!-- Screen 2: Questionnaire (dynamic) -->
+      <section class="kyc-screen" id="screenQuestionnaire" aria-label="KYC Questionnaire">
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-bar__fill" id="progressFill" style="width:0%"></div>
+          </div>
+          <span class="progress-label" id="progressLabel">Question 1 of 7</span>
+        </div>
+        <div class="section-tag" id="sectionTag">Employment</div>
+
+        <h2 class="kyc-question" id="questionText">Loading...</h2>
+        <p class="kyc-help-text" id="helpText" style="display:none"></p>
+
+        <div class="options-list" id="optionsList" role="group" aria-labelledby="questionText">
+          <!-- Populated by JS -->
+        </div>
+
+        <div class="text-input-wrap" id="textInputWrap" style="display:none">
+          <textarea class="kyc-textarea" id="textAnswer" rows="4" maxlength="500" placeholder="Type your answer here..."></textarea>
+          <span class="char-count" id="charCount">0 / 500</span>
+        </div>
+
+        <div class="kyc-upload" id="uploadWrap" style="display:none">
+          <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFileSelect(this)" />
+          <button class="kyc-upload__zone" id="uploadZone" type="button" onclick="document.getElementById('fileInput').click()">
+            <span class="kyc-upload__zone-icon" aria-hidden="true">📎</span>
+            <span class="kyc-upload__zone-label">Tap to upload document</span>
+            <span class="kyc-upload__zone-hint" id="uploadHint">PDF, JPG, PNG · Max 10 MB</span>
+          </button>
+          <div class="kyc-upload__preview" id="uploadPreview" style="display:none">
+            <span class="kyc-upload__file-icon" aria-hidden="true">📄</span>
+            <div class="kyc-upload__file-info">
+              <span class="kyc-upload__file-name" id="uploadFileName"></span>
+              <span class="kyc-upload__file-size" id="uploadFileSize"></span>
+            </div>
+            <button class="kyc-upload__remove" type="button" onclick="removeUploadedFile()" aria-label="Remove file">✕</button>
+          </div>
+          <p class="kyc-upload__examples" id="uploadExamples" style="display:none"></p>
+        </div>
+
+        <div class="validation-error" id="validationError" role="alert" style="display:none"></div>
+
+        <div class="q-nav">
+          <button class="btn btn--secondary" id="backBtn" onclick="prevQuestion()" data-i18n="ui.back">← Back</button>
+          <button class="btn btn--primary" id="nextBtn" onclick="nextQuestion()" data-i18n="ui.continue">Continue →</button>
+        </div>
+      </section>
+
+      <!-- Screen 3: Review Answers -->
+      <section class="kyc-screen" id="screenReview" aria-label="Review your answers">
+        <h2 class="kyc-title" data-i18n="review.title">Review Your Answers</h2>
+        <p class="kyc-subtitle" data-i18n="review.subtitle">Please confirm the information before submitting.</p>
+
+        <ul class="review-list" id="reviewList">
+          <!-- Populated by JS -->
+        </ul>
+
+        <div class="declaration-box">
+          <label class="declaration-check">
+            <input type="checkbox" id="declarationCheck" onchange="toggleSubmit(this)" />
+            <span data-i18n="review.declaration">
+              I declare that all information provided is accurate, complete, and up to date.
+              I understand that providing false information may have legal consequences.
+            </span>
+          </label>
+        </div>
+
+        <div class="q-nav">
+          <button class="btn btn--secondary" onclick="goTo('screenQuestionnaire')" data-i18n="ui.back">← Back</button>
+          <button class="btn btn--submit" id="submitBtn" onclick="submitKyc()" disabled data-i18n="review.submit">
+            Submit Declaration
+          </button>
+        </div>
+      </section>
+
+      <!-- Screen 4: Processing -->
+      <section class="kyc-screen" id="screenProcessing" aria-label="Processing">
+        <div class="processing-wrap">
+          <div class="spinner" aria-label="Processing your submission" role="status"></div>
+          <h2 class="kyc-title" data-i18n="processing.title">Processing Your Information</h2>
+          <p class="kyc-subtitle" data-i18n="processing.subtitle">Please wait while we securely submit your declaration...</p>
+          <div class="processing-steps">
+            <div class="processing-step" id="step1">
+              <span class="step-icon">⏳</span>
+              <span data-i18n="processing.step1">Encrypting your data</span>
+            </div>
+            <div class="processing-step" id="step2">
+              <span class="step-icon">⏳</span>
+              <span data-i18n="processing.step2">Running compliance checks</span>
+            </div>
+            <div class="processing-step" id="step3">
+              <span class="step-icon">⏳</span>
+              <span data-i18n="processing.step3">Updating your profile</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screen 5: Success -->
+      <section class="kyc-screen" id="screenSuccess" aria-label="KYC Complete">
+        <div class="status-icon status-icon--success" aria-hidden="true">✓</div>
+        <h2 class="kyc-title" data-i18n="success.title">Verification Complete</h2>
+        <p class="kyc-subtitle" data-i18n="success.subtitle">Your KYC information has been updated successfully.</p>
+
+        <div class="info-card">
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="success.status">Status</span>
+            <span class="chip chip--green" data-i18n="success.approved">Approved</span>
+          </div>
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="success.ref">Reference No.</span>
+            <span class="info-card__value" id="refNumber">KYC-2024-001234</span>
+          </div>
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="success.completed">Completed</span>
+            <span class="info-card__value" id="completedAt">—</span>
+          </div>
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="success.nextReview">Next Review</span>
+            <span class="info-card__value" id="nextReview">—</span>
+          </div>
+        </div>
+
+        <p class="kyc-footnote" data-i18n="success.footnote">
+          A confirmation has been sent to your registered email and phone number.
+        </p>
+
+        <button class="btn btn--primary btn--full" onclick="goToBanking()" data-i18n="success.return">
+          Return to Banking →
+        </button>
+      </section>
+
+      <!-- Screen 6: Exception / Under Review -->
+      <section class="kyc-screen" id="screenException" aria-label="Review Required">
+        <div class="status-icon status-icon--review" aria-hidden="true">⚑</div>
+        <h2 class="kyc-title" data-i18n="exception.title">Additional Review Required</h2>
+        <span class="chip chip--amber" data-i18n="exception.chip">Under Review</span>
+        <p class="kyc-subtitle" style="margin-top:1rem" data-i18n="exception.subtitle">
+          Our compliance team needs to review your information. This typically takes 1–2 business days.
+        </p>
+
+        <div class="info-card">
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="exception.caseRef">Case Ref.</span>
+            <span class="info-card__value">CASE-2024-004821</span>
+          </div>
+          <div class="info-card__row">
+            <span class="info-card__label" data-i18n="exception.expectedResponse">Expected Response</span>
+            <span class="info-card__value" data-i18n="exception.within48">Within 48 hours</span>
+          </div>
+        </div>
+
+        <div class="contact-box">
+          <p><strong data-i18n="exception.hotline">KYC Compliance Hotline:</strong> *4500</p>
+          <p><strong data-i18n="exception.email">Email:</strong> compliance@bank.co.il</p>
+          <p><strong data-i18n="exception.branch">Branch:</strong> <span data-i18n="exception.branchValue">Visit any branch with valid ID</span></p>
+        </div>
+
+        <button class="btn btn--primary btn--full" onclick="goToBanking()" data-i18n="success.return">
+          Return to Banking →
+        </button>
+      </section>
+
+      <!-- Screen 7: Reminder Sent -->
+      <section class="kyc-screen" id="screenNotify" aria-label="Reminder Set">
+        <div class="status-icon status-icon--info" aria-hidden="true">🔔</div>
+        <h2 class="kyc-title" data-i18n="remind.title">Reminder Set</h2>
+        <p class="kyc-subtitle" data-i18n="remind.subtitle">We'll remind you again in 3 days. Please complete your KYC within the deadline to avoid account restrictions.</p>
+        <button class="btn btn--primary btn--full" onclick="goTo('screenNotification')" data-i18n="remind.back">
+          ← Back to KYC
+        </button>
+      </section>
+
+    </main>
+
+    <!-- ── Demo Controls ─────────────────────────────────── -->
+    <div class="demo-controls" aria-label="Demo navigation">
+      <p class="demo-controls__label">Demo Navigation:</p>
+      <div class="demo-controls__buttons">
+        <button onclick="demoFlow('low')" class="demo-btn demo-btn--green">Low Risk (Auto)</button>
+        <button onclick="demoFlow('medium')" class="demo-btn demo-btn--amber">Medium Risk</button>
+        <button onclick="demoFlow('high')" class="demo-btn demo-btn--red">High Risk / Exception</button>
+        <button onclick="demoFlow('reset')" class="demo-btn demo-btn--grey">Reset</button>
+      </div>
+    </div>
+
+  </div><!-- /app-shell -->
+
+  <script>
+    // ─── Translations ────────────────────────────────────────
+    const T = {
+      en: {
+        bankName: 'Bank KYC Portal',
+        'notif.title': 'Action Required',
+        'notif.subtitle': 'We need to update your profile information to comply with banking regulations.',
+        'notif.customer': 'Customer',
+        'notif.trigger': 'Trigger',
+        'notif.triggerValue': 'Annual KYC Refresh',
+        'notif.deadline': 'Deadline',
+        'notif.deadlineValue': '30 days remaining',
+        'notif.legal': 'Required under the Prevention of Money Laundering Law (2000) and Bank of Israel Directive 411.',
+        'header.dashboard': 'Dashboard',
+        'notif.start': 'Start Verification →',
+        'notif.remind': 'Remind Me Later',
+        'auth.title': 'Verify Your Identity',
+        'auth.subtitle': "Choose how you'd like to authenticate before proceeding.",
+        'auth.biometric': 'Face ID / Touch ID',
+        'auth.recommended': 'Recommended',
+        'auth.sms': 'SMS One-Time Password',
+        'auth.password': 'Password + PIN',
+        'auth.otpLabel': 'Enter the 6-digit code sent to your phone',
+        'auth.resend': 'Resend code',
+        'auth.cta': 'Authenticate & Continue',
+        'ui.back': '← Back',
+        'ui.continue': 'Continue →',
+        'ui.reviewAnswers': 'Review Answers',
+        'ui.selectError': 'Please select an answer before continuing.',
+        'ui.uploadError': 'Please upload the required document before continuing.',
+        'ui.fileTooLarge': 'File is too large. Maximum size is {n} MB.',
+        'ui.uploadZone': 'Tap to upload document',
+        'ui.uploadExamples': 'Examples:',
+        'review.title': 'Review Your Answers',
+        'review.subtitle': 'Please confirm the information before submitting.',
+        'review.declaration': 'I declare that all information provided is accurate, complete, and up to date. I understand that providing false information may have legal consequences.',
+        'review.submit': 'Submit Declaration',
+        'processing.title': 'Processing Your Information',
+        'processing.subtitle': 'Please wait while we securely submit your declaration...',
+        'processing.step1': 'Encrypting your data',
+        'processing.step2': 'Running compliance checks',
+        'processing.step3': 'Updating your profile',
+        'success.title': 'Verification Complete',
+        'success.subtitle': 'Your KYC information has been updated successfully.',
+        'success.status': 'Status',
+        'success.approved': 'Approved',
+        'success.ref': 'Reference No.',
+        'success.completed': 'Completed',
+        'success.nextReview': 'Next Review',
+        'success.footnote': 'A confirmation has been sent to your registered email and phone number.',
+        'success.return': 'Return to Banking →',
+        'exception.title': 'Additional Review Required',
+        'exception.chip': 'Under Review',
+        'exception.subtitle': 'Our compliance team needs to review your information. This typically takes 1–2 business days.',
+        'exception.caseRef': 'Case Ref.',
+        'exception.expectedResponse': 'Expected Response',
+        'exception.within48': 'Within 48 hours',
+        'exception.hotline': 'KYC Compliance Hotline:',
+        'exception.email': 'Email:',
+        'exception.branch': 'Branch:',
+        'exception.branchValue': 'Visit any branch with valid ID',
+        'remind.title': 'Reminder Set',
+        'remind.subtitle': "We'll remind you again in 3 days. Please complete your KYC within the deadline to avoid account restrictions.",
+        'remind.back': '← Back to KYC',
+        'question.of': 'Question {a} of {b}',
+      },
+      he: {
+        'bankName': 'פורטל KYC בנקאי',
+        'notif.title': 'נדרשת פעולה',
+        'notif.subtitle': 'עלינו לעדכן את פרטי הפרופיל שלך בהתאם לתקנות הבנקאות.',
+        'notif.customer': 'לקוח/ה',
+        'notif.trigger': 'סיבת הבקשה',
+        'notif.triggerValue': 'רענון KYC שנתי',
+        'notif.deadline': 'מועד אחרון',
+        'notif.deadlineValue': 'נותרו 30 ימים',
+        'notif.legal': 'נדרש מכוח חוק איסור הלבנת הון (2000) והוראת בנק ישראל 411.',
+        'header.dashboard': 'לוח בקרה',
+        'notif.start': 'התחל/י אימות ←',
+        'notif.remind': 'הזכר/י לי מאוחר יותר',
+        'auth.title': 'אמת/י את זהותך',
+        'auth.subtitle': 'בחר/י כיצד ברצונך להזדהות לפני המשך.',
+        'auth.biometric': 'זיהוי פנים / טביעת אצבע',
+        'auth.recommended': 'מומלץ',
+        'auth.sms': 'סיסמה חד-פעמית ב-SMS',
+        'auth.password': 'סיסמה + קוד PIN',
+        'auth.otpLabel': 'הזן/י את הקוד בן 6 הספרות שנשלח לטלפונך',
+        'auth.resend': 'שלח/י קוד מחדש',
+        'auth.cta': 'אמת/י והמשך/י',
+        'ui.back': '← חזרה',
+        'ui.continue': 'המשך/י ←',
+        'ui.reviewAnswers': 'סקור/י תשובות',
+        'ui.selectError': 'נא בחר/י תשובה לפני המשך.',
+        'ui.uploadError': 'נא העלה/י את המסמך הנדרש לפני המשך.',
+        'ui.fileTooLarge': 'הקובץ גדול מדי. הגודל המרבי הוא {n} MB.',
+        'ui.uploadZone': 'הקש/י להעלאת מסמך',
+        'ui.uploadExamples': 'דוגמאות:',
+        'review.title': 'סקור/י את תשובותיך',
+        'review.subtitle': 'נא אשר/י את המידע לפני השליחה.',
+        'review.declaration': 'אני מצהיר/ה שכל המידע שנמסר הוא מדויק, מלא ועדכני. ידוע לי שמסירת מידע כוזב עלולה לגרור השלכות משפטיות.',
+        'review.submit': 'שלח/י הצהרה',
+        'processing.title': 'מעבד/ת את המידע שלך',
+        'processing.subtitle': 'נא המתן/י בזמן שאנו שולחים את הצהרתך בצורה מאובטחת...',
+        'processing.step1': 'מצפין את הנתונים שלך',
+        'processing.step2': 'מריץ בדיקות ציות',
+        'processing.step3': 'מעדכן את הפרופיל שלך',
+        'success.title': 'האימות הושלם',
+        'success.subtitle': 'פרטי ה-KYC שלך עודכנו בהצלחה.',
+        'success.status': 'סטטוס',
+        'success.approved': 'מאושר',
+        'success.ref': 'מספר אסמכתא',
+        'success.completed': 'הושלם',
+        'success.nextReview': 'בדיקה הבאה',
+        'success.footnote': 'אישור נשלח לכתובת הדוא"ל ומספר הטלפון הרשומים שלך.',
+        'success.return': '← חזרה לבנקאות',
+        'exception.title': 'נדרשת סקירה נוספת',
+        'exception.chip': 'בסקירה',
+        'exception.subtitle': 'צוות הציות שלנו צריך לסקור את המידע שלך. בדרך כלל הדבר אורך 1–2 ימי עסקים.',
+        'exception.caseRef': 'מספר תיק',
+        'exception.expectedResponse': 'מענה צפוי',
+        'exception.within48': 'תוך 48 שעות',
+        'exception.hotline': 'קו חם לציות KYC:',
+        'exception.email': 'דוא"ל:',
+        'exception.branch': 'סניף:',
+        'exception.branchValue': 'בקר/י בכל סניף עם תעודה מזהה בתוקף',
+        'remind.title': 'תזכורת נקבעה',
+        'remind.subtitle': 'נזכיר לך שוב בעוד 3 ימים. נא השלם/י את ה-KYC לפני המועד האחרון כדי למנוע הגבלת חשבון.',
+        'remind.back': '← חזרה ל-KYC',
+        'question.of': 'שאלה {a} מתוך {b}',
+      }
+    };
+
+    let currentLang = 'en';
+
+    function t(key, vars) {
+      const str = (T[currentLang] || T.en)[key] || T.en[key] || key;
+      if (!vars) return str;
+      return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+    }
+
+    function applyTranslations() {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+      });
+      // Update progress label if visible
+      const label = document.getElementById('progressLabel');
+      if (label && label.dataset.a) {
+        label.textContent = t('question.of', { a: label.dataset.a, b: label.dataset.b });
+      }
+      // Update next button text
+      const nextBtn = document.getElementById('nextBtn');
+      if (nextBtn) {
+        const total = questions.length;
+        nextBtn.textContent = currentQuestionIndex + 1 === total
+          ? t('ui.reviewAnswers')
+          : t('ui.continue');
+      }
+      // Update upload zone label
+      const zoneLabel = document.querySelector('.kyc-upload__zone-label');
+      if (zoneLabel) zoneLabel.textContent = t('ui.uploadZone');
+      // Header
+      const logoText = document.querySelector('.logo-text');
+      if (logoText) logoText.textContent = t('bankName');
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      const html = document.documentElement;
+      if (lang === 'he') {
+        html.setAttribute('dir', 'rtl');
+        html.setAttribute('lang', 'he');
+      } else {
+        html.setAttribute('dir', 'ltr');
+        html.setAttribute('lang', 'en');
+      }
+      questions = (lang === 'he' ? QUESTION_SETS_HE : QUESTION_SETS)[currentRiskFlow] || QUESTION_SETS[currentRiskFlow];
+      applyTranslations();
+      goTo('screenNotification');
+    }
+
+    // ─── Hebrew Question Sets ────────────────────────────────
+    const QUESTION_SETS_HE = {
+      low: [
+        {
+          id: 'Q_NO_CHANGES', section: 'אימות זהות',
+          text: 'האם חלו שינויים בפרטיך האישיים או הפיננסיים מאז העדכון האחרון?',
+          helpText: "בחר/י 'לא' רק אם תעסוקתך, הכנסתך, כתובתך ופעילותך נותרו זהים לחלוטין.",
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן, חל שינוי' }, { value: 'NO', label: 'לא, הכל זהה' }]
+        },
+        {
+          id: 'Q_EMPLOYMENT_CHANGED', section: 'תעסוקה',
+          text: 'האם מעמדך התעסוקתי או מעסיקך השתנה ב-12 החודשים האחרונים?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא' }]
+        },
+        {
+          id: 'Q_MONTHLY_INCOME', section: 'הכנסה',
+          text: 'מה הכנסתך החודשית המשוערת (בש"ח)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'עד ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'מעל ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_EXPECTED_MONTHLY_ACTIVITY', section: 'פעילות חשבון',
+          text: 'מה פעילות החשבון החודשית הכוללת הצפויה שלך (הפקדות + משיכות)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'עד ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'מעל ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_INTERNATIONAL_ACTIVITY', section: 'פעילות בינלאומית',
+          text: 'האם אתה/את צפוי/ה לבצע העברות בינלאומיות (שליחה או קבלה מחו"ל)?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא' }]
+        },
+        {
+          id: 'Q_FOREIGN_TAX_RESIDENCY', section: 'תושבות מס',
+          text: 'האם אתה/את תושב/ת למטרות מס במדינה אחרת מלבד ישראל?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא, רק ישראל' }]
+        },
+        {
+          id: 'Q_PEP_STATUS', section: 'הצהרת PEP',
+          text: 'האם אתה/את, או בן/בת משפחה מדרגה ראשונה, אדם חשוף פוליטית (PEP)?',
+          helpText: 'אדם חשוף פוליטית הוא מי שמכהן או כיהן בתפקיד ציבורי בכיר, כגון בכיר ממשלתי, פוליטיקאי, קצין צבאי בכיר או שופט.',
+          type: 'yesno',
+          options: [{ value: 'NO', label: 'לא' }, { value: 'YES', label: 'כן', highRisk: true }]
+        }
+      ],
+      medium: [
+        {
+          id: 'Q_EMPLOYMENT_STATUS', section: 'תעסוקה',
+          text: 'מה מעמדך התעסוקתי הנוכחי?',
+          type: 'choice',
+          options: [
+            { value: 'EMPLOYED', label: 'שכיר/ה' },
+            { value: 'SELF_EMPLOYED', label: 'עצמאי/ת / פרילנסר' },
+            { value: 'BUSINESS_OWNER', label: 'בעל/ת עסק' },
+            { value: 'RETIRED', label: 'פנסיונר/ית' },
+            { value: 'STUDENT', label: 'סטודנט/ית' }
+          ]
+        },
+        {
+          id: 'Q_SOURCE_OF_FUNDS', section: 'מקור הכספים',
+          text: 'מה המקור העיקרי של הכספים בחשבונך?',
+          type: 'choice',
+          options: [
+            { value: 'SALARY', label: 'משכורת' },
+            { value: 'BUSINESS_INCOME', label: 'הכנסה מעסק' },
+            { value: 'INVESTMENT_RETURNS', label: 'תשואות מהשקעות' },
+            { value: 'PENSION', label: 'פנסיה' },
+            { value: 'INHERITANCE', label: 'ירושה' },
+            { value: 'OTHER', label: 'אחר', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_MONTHLY_INCOME', section: 'הכנסה',
+          text: 'מה הכנסתך החודשית המשוערת (בש"ח)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'עד ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'מעל ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_EXPECTED_MONTHLY_ACTIVITY', section: 'פעילות חשבון',
+          text: 'מה פעילות החשבון החודשית הכוללת הצפויה שלך (הפקדות + משיכות)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'עד ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'מעל ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_INTERNATIONAL_ACTIVITY', section: 'פעילות בינלאומית',
+          text: 'האם אתה/את צפוי/ה לבצע העברות בינלאומיות?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא' }]
+        },
+        {
+          id: 'Q_FOREIGN_TAX_RESIDENCY', section: 'תושבות מס',
+          text: 'האם אתה/את תושב/ת למטרות מס במדינה אחרת מלבד ישראל?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא, רק ישראל' }]
+        },
+        {
+          id: 'Q_FATCA_DECLARATION', section: 'הצהרת FATCA',
+          text: 'האם אתה/את אזרח/ית אמריקאי/ת, בעל/ת גרין קארד, או תושב/ת למטרות מס בארה"ב?',
+          helpText: 'נדרש מכוח חוק ציות לחשבונות מס זרים (FATCA).',
+          type: 'choice',
+          options: [
+            { value: 'NO', label: 'לא – אינני אמריקאי/ת' },
+            { value: 'YES_US_CITIZEN', label: 'כן – אזרח/ית אמריקאי/ת', highRisk: true },
+            { value: 'YES_GREEN_CARD', label: 'כן – בעל/ת גרין קארד', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_PEP_STATUS', section: 'הצהרת PEP',
+          text: 'האם אתה/את, או בן/בת משפחה מדרגה ראשונה, אדם חשוף פוליטית (PEP)?',
+          type: 'yesno',
+          options: [{ value: 'NO', label: 'לא' }, { value: 'YES', label: 'כן', highRisk: true }]
+        },
+        {
+          id: 'Q_DOC_INCOME_PROOF', section: 'מסמכים תומכים',
+          text: 'נא העלה/י הוכחת הכנסה עדכנית (תלוש שכר או דפי חשבון מ-3 החודשים האחרונים).',
+          helpText: 'מותר: PDF, JPG, PNG — עד 10 MB.',
+          type: 'upload', required: true, accept: '.pdf,.jpg,.jpeg,.png', maxMb: 10,
+          examples: 'תלוש שכר, דפי חשבון, מכתב פנסיה'
+        }
+      ],
+      high: [
+        {
+          id: 'Q_EMPLOYMENT_STATUS', section: 'תעסוקה',
+          text: 'מה מעמדך התעסוקתי הנוכחי?',
+          type: 'choice',
+          options: [
+            { value: 'EMPLOYED', label: 'שכיר/ה' },
+            { value: 'SELF_EMPLOYED', label: 'עצמאי/ת' },
+            { value: 'BUSINESS_OWNER', label: 'בעל/ת עסק' },
+            { value: 'RETIRED', label: 'פנסיונר/ית' }
+          ]
+        },
+        {
+          id: 'Q_SOURCE_OF_FUNDS', section: 'מקור הכספים',
+          text: 'מה המקור העיקרי של הכספים בחשבונך?',
+          type: 'choice',
+          options: [
+            { value: 'SALARY', label: 'משכורת' },
+            { value: 'BUSINESS_INCOME', label: 'הכנסה מעסק' },
+            { value: 'INVESTMENT_RETURNS', label: 'תשואות מהשקעות' },
+            { value: 'INHERITANCE', label: 'ירושה' },
+            { value: 'OTHER', label: 'אחר', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_SOURCE_OF_WEALTH', section: 'מקור העושר',
+          text: 'כיצד צברת את עושרך הכולל? (ניתן לבחור יותר מאחד)',
+          type: 'multi',
+          options: [
+            { value: 'CAREER_SAVINGS', label: 'חסכונות מקצועיים' },
+            { value: 'BUSINESS_PROFITS', label: 'רווחי עסקים' },
+            { value: 'INVESTMENTS', label: 'השקעות לטווח ארוך' },
+            { value: 'REAL_ESTATE', label: 'נדל"ן' },
+            { value: 'INHERITANCE', label: 'ירושה' }
+          ]
+        },
+        {
+          id: 'Q_MONTHLY_INCOME', section: 'הכנסה',
+          text: 'מה הכנסתך החודשית המשוערת (בש"ח)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'עד ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'מעל ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_EXPECTED_MONTHLY_ACTIVITY', section: 'פעילות חשבון',
+          text: 'מה פעילות החשבון החודשית הכוללת הצפויה שלך (הפקדות + משיכות)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'עד ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'מעל ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_INTERNATIONAL_ACTIVITY', section: 'פעילות בינלאומית',
+          text: 'האם אתה/את מבצע/ת העברות בינלאומיות?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא' }]
+        },
+        {
+          id: 'Q_BENEFICIAL_OWNERSHIP', section: 'בעלות נהנים',
+          text: 'האם אתה/את פועל/ת מטעם אדם אחר או ישות משפטית?',
+          type: 'yesno',
+          options: [
+            { value: 'NO', label: 'לא, אני הבעלים המוטב היחיד/ה' },
+            { value: 'YES', label: 'כן', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_FOREIGN_TAX_RESIDENCY', section: 'תושבות מס',
+          text: 'האם אתה/את תושב/ת למטרות מס במדינה אחרת מלבד ישראל?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'כן' }, { value: 'NO', label: 'לא, רק ישראל' }]
+        },
+        {
+          id: 'Q_PEP_STATUS', section: 'הצהרת PEP',
+          text: 'האם אתה/את, או בן/בת משפחה מדרגה ראשונה, אדם חשוף פוליטית (PEP)?',
+          type: 'yesno',
+          options: [{ value: 'NO', label: 'לא' }, { value: 'YES', label: 'כן', highRisk: true }]
+        },
+        {
+          id: 'Q_DOC_INCOME_PROOF', section: 'מסמכים תומכים',
+          text: 'נא העלה/י הוכחת הכנסה עדכנית (תלוש שכר או דפי חשבון מ-3 החודשים האחרונים).',
+          helpText: 'מותר: PDF, JPG, PNG — עד 10 MB.',
+          type: 'upload', required: true, accept: '.pdf,.jpg,.jpeg,.png', maxMb: 10,
+          examples: 'תלוש שכר, דפי חשבון, מכתב פנסיה'
+        },
+        {
+          id: 'Q_DOC_ID_DOCUMENT', section: 'מסמכים תומכים',
+          text: 'נא העלה/י עותק ברור של דרכונך התקף או תעודת הזהות שלך (שני הצדדים נדרשים).',
+          helpText: 'מותר: PDF, JPG, PNG — עד 10 MB.',
+          type: 'upload', required: true, accept: '.pdf,.jpg,.jpeg,.png', maxMb: 10,
+          examples: 'עמוד תמונה בדרכון, שני צדי תעודת זהות'
+        }
+      ]
+    };
+
+    // ─── Demo State ──────────────────────────────────────────
+    let currentQuestionIndex = 0;
+    let answers = {};
+    let selectedAuthMethod = 'biometric';
+    let currentRiskFlow = 'low';
+
+    // ─── Question Bank (simplified demo) ────────────────────
+    const QUESTION_SETS = {
+      low: [
+        {
+          id: 'Q_NO_CHANGES',
+          section: 'Identity Confirmation',
+          text: 'Has any of your personal or financial information changed since your last update?',
+          type: 'yesno',
+          options: [
+            { value: 'YES', label: 'Yes, something has changed' },
+            { value: 'NO', label: 'No, everything is the same' }
+          ]
+        },
+        {
+          id: 'Q_EMPLOYMENT_CHANGED',
+          section: 'Employment',
+          text: 'Has your employment status or employer changed in the past 12 months?',
+          type: 'yesno',
+          options: [
+            { value: 'YES', label: 'Yes' },
+            { value: 'NO', label: 'No' }
+          ]
+        },
+        {
+          id: 'Q_MONTHLY_INCOME',
+          section: 'Income',
+          text: 'What is your approximate monthly income (in NIS)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'Up to ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'Above ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_EXPECTED_MONTHLY_ACTIVITY',
+          section: 'Account Activity',
+          text: 'What is your expected total monthly account activity (deposits + withdrawals)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'Up to ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'Above ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_INTERNATIONAL_ACTIVITY',
+          section: 'International Activity',
+          text: 'Do you expect to conduct international transfers (sending or receiving from abroad)?',
+          type: 'yesno',
+          options: [
+            { value: 'YES', label: 'Yes' },
+            { value: 'NO', label: 'No' }
+          ]
+        },
+        {
+          id: 'Q_FOREIGN_TAX_RESIDENCY',
+          section: 'Tax Residency',
+          text: 'Are you a tax resident in any country other than Israel?',
+          type: 'yesno',
+          options: [
+            { value: 'YES', label: 'Yes' },
+            { value: 'NO', label: 'No, only Israel' }
+          ]
+        },
+        {
+          id: 'Q_PEP_STATUS',
+          section: 'PEP Declaration',
+          text: 'Are you, or is an immediate family member, a Politically Exposed Person?',
+          helpText: 'A PEP is a person who holds or has held a prominent public function such as a senior government official, politician, military officer, or judge.',
+          type: 'yesno',
+          options: [
+            { value: 'NO', label: 'No' },
+            { value: 'YES', label: 'Yes', highRisk: true }
+          ]
+        }
+      ],
+      medium: [
+        {
+          id: 'Q_EMPLOYMENT_STATUS',
+          section: 'Employment',
+          text: 'What is your current employment status?',
+          type: 'choice',
+          options: [
+            { value: 'EMPLOYED', label: 'Employed (for an employer)' },
+            { value: 'SELF_EMPLOYED', label: 'Self-employed / Freelancer' },
+            { value: 'BUSINESS_OWNER', label: 'Business owner' },
+            { value: 'RETIRED', label: 'Retired' },
+            { value: 'STUDENT', label: 'Student' }
+          ]
+        },
+        {
+          id: 'Q_SOURCE_OF_FUNDS',
+          section: 'Source of Funds',
+          text: 'What is the primary source of funds in your account?',
+          type: 'choice',
+          options: [
+            { value: 'SALARY', label: 'Salary' },
+            { value: 'BUSINESS_INCOME', label: 'Business income' },
+            { value: 'INVESTMENT_RETURNS', label: 'Investment returns' },
+            { value: 'PENSION', label: 'Pension' },
+            { value: 'INHERITANCE', label: 'Inheritance' },
+            { value: 'OTHER', label: 'Other', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_MONTHLY_INCOME',
+          section: 'Income',
+          text: 'What is your approximate monthly income (in NIS)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'Up to ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'Above ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_EXPECTED_MONTHLY_ACTIVITY',
+          section: 'Account Activity',
+          text: 'What is your expected total monthly account activity?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'Up to ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'Above ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_INTERNATIONAL_ACTIVITY',
+          section: 'International Activity',
+          text: 'Do you conduct international transfers?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No' }]
+        },
+        {
+          id: 'Q_FOREIGN_TAX_RESIDENCY',
+          section: 'Tax Residency',
+          text: 'Are you a tax resident in any country other than Israel?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No, only Israel' }]
+        },
+        {
+          id: 'Q_FATCA_DECLARATION',
+          section: 'FATCA Declaration',
+          text: 'Do you hold US citizenship, a US green card, or are you a US tax resident?',
+          helpText: 'Required under the Foreign Account Tax Compliance Act (FATCA).',
+          type: 'choice',
+          options: [
+            { value: 'NO', label: 'No – I am not a US person' },
+            { value: 'YES_US_CITIZEN', label: 'Yes – US citizen', highRisk: true },
+            { value: 'YES_GREEN_CARD', label: 'Yes – US green card holder', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_PEP_STATUS',
+          section: 'PEP Declaration',
+          text: 'Are you, or is an immediate family member, a Politically Exposed Person?',
+          type: 'yesno',
+          options: [{ value: 'NO', label: 'No' }, { value: 'YES', label: 'Yes', highRisk: true }]
+        },
+        {
+          id: 'Q_DOC_INCOME_PROOF',
+          section: 'Supporting Documents',
+          text: 'Please upload a recent proof of income (salary slip or bank statement from the last 3 months).',
+          helpText: 'Accepted: PDF, JPG, PNG — max 10 MB.',
+          type: 'upload',
+          required: true,
+          accept: '.pdf,.jpg,.jpeg,.png',
+          maxMb: 10,
+          examples: 'salary slip, bank statement, pension letter'
+        }
+      ],
+      high: [
+        {
+          id: 'Q_EMPLOYMENT_STATUS',
+          section: 'Employment',
+          text: 'What is your current employment status?',
+          type: 'choice',
+          options: [
+            { value: 'EMPLOYED', label: 'Employed' },
+            { value: 'SELF_EMPLOYED', label: 'Self-employed' },
+            { value: 'BUSINESS_OWNER', label: 'Business owner' },
+            { value: 'RETIRED', label: 'Retired' }
+          ]
+        },
+        {
+          id: 'Q_SOURCE_OF_FUNDS',
+          section: 'Source of Funds',
+          text: 'What is the primary source of funds in your account?',
+          type: 'choice',
+          options: [
+            { value: 'SALARY', label: 'Salary' },
+            { value: 'BUSINESS_INCOME', label: 'Business income' },
+            { value: 'INVESTMENT_RETURNS', label: 'Investment returns' },
+            { value: 'INHERITANCE', label: 'Inheritance' },
+            { value: 'OTHER', label: 'Other', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_SOURCE_OF_WEALTH',
+          section: 'Source of Wealth',
+          text: 'How did you accumulate your overall wealth? (Select all that apply)',
+          type: 'multi',
+          options: [
+            { value: 'CAREER_SAVINGS', label: 'Career savings' },
+            { value: 'BUSINESS_PROFITS', label: 'Business profits' },
+            { value: 'INVESTMENTS', label: 'Long-term investments' },
+            { value: 'REAL_ESTATE', label: 'Real estate' },
+            { value: 'INHERITANCE', label: 'Inheritance' }
+          ]
+        },
+        {
+          id: 'Q_MONTHLY_INCOME',
+          section: 'Income',
+          text: 'What is your approximate monthly income (in NIS)?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'Up to ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_15K_TO_30K', label: '₪15,001 – ₪30,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'Above ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_EXPECTED_MONTHLY_ACTIVITY',
+          section: 'Account Activity',
+          text: 'What is your expected total monthly account activity?',
+          type: 'choice',
+          options: [
+            { value: 'UNDER_5K', label: 'Up to ₪5,000' },
+            { value: 'FROM_5K_TO_15K', label: '₪5,001 – ₪15,000' },
+            { value: 'FROM_30K_TO_50K', label: '₪30,001 – ₪50,000' },
+            { value: 'ABOVE_50K', label: 'Above ₪50,000' }
+          ]
+        },
+        {
+          id: 'Q_INTERNATIONAL_ACTIVITY',
+          section: 'International Activity',
+          text: 'Do you conduct international transfers?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No' }]
+        },
+        {
+          id: 'Q_BENEFICIAL_OWNERSHIP',
+          section: 'Beneficial Ownership',
+          text: 'Are you acting on behalf of another person or entity?',
+          type: 'yesno',
+          options: [
+            { value: 'NO', label: 'No, I am the sole beneficial owner' },
+            { value: 'YES', label: 'Yes', highRisk: true }
+          ]
+        },
+        {
+          id: 'Q_FOREIGN_TAX_RESIDENCY',
+          section: 'Tax Residency',
+          text: 'Are you a tax resident in any country other than Israel?',
+          type: 'yesno',
+          options: [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No, only Israel' }]
+        },
+        {
+          id: 'Q_PEP_STATUS',
+          section: 'PEP Declaration',
+          text: 'Are you, or is an immediate family member, a Politically Exposed Person?',
+          type: 'yesno',
+          options: [{ value: 'NO', label: 'No' }, { value: 'YES', label: 'Yes', highRisk: true }]
+        },
+        {
+          id: 'Q_DOC_INCOME_PROOF',
+          section: 'Supporting Documents',
+          text: 'Please upload a recent proof of income (salary slip or bank statement from the last 3 months).',
+          helpText: 'Accepted: PDF, JPG, PNG — max 10 MB.',
+          type: 'upload',
+          required: true,
+          accept: '.pdf,.jpg,.jpeg,.png',
+          maxMb: 10,
+          examples: 'salary slip, bank statement, pension letter'
+        },
+        {
+          id: 'Q_DOC_ID_DOCUMENT',
+          section: 'Supporting Documents',
+          text: 'Please upload a clear copy of your valid passport or national ID card (both sides required).',
+          helpText: 'Accepted: PDF, JPG, PNG — max 10 MB.',
+          type: 'upload',
+          required: true,
+          accept: '.pdf,.jpg,.jpeg,.png',
+          maxMb: 10,
+          examples: 'passport photo page, both sides of national ID'
+        }
+      ]
+    };
+
+    let questions = QUESTION_SETS.low;
+    let multiAnswers = {};
+    let uploadedFiles = {};
+
+    // ─── Navigation ──────────────────────────────────────────
+
+    function goTo(screenId) {
+      document.querySelectorAll('.kyc-screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    function selectAuth(btn, method) {
+      document.querySelectorAll('.auth-method-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedAuthMethod = method;
+      document.getElementById('otpContainer').style.display = method === 'otp' ? 'block' : 'none';
+    }
+
+    function resendOtp() {
+      alert('A new code has been sent to your phone.');
+    }
+
+    function authenticate() {
+      if (selectedAuthMethod === 'otp') {
+        const otp = document.getElementById('otpInput').value;
+        if (otp.length !== 6) { alert('Please enter the 6-digit code.'); return; }
+      }
+      startQuestionnaire();
+    }
+
+    // ─── File Upload Helpers ─────────────────────────────────
+
+    function formatFileSize(bytes) {
+      return bytes < 1024 * 1024
+        ? `${(bytes / 1024).toFixed(1)} KB`
+        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function handleFileSelect(input) {
+      const q = questions[currentQuestionIndex];
+      const file = input.files[0];
+      if (!file) return;
+      const maxMb = q.maxMb || 10;
+      if (file.size > maxMb * 1024 * 1024) {
+        const errEl = document.getElementById('validationError');
+        errEl.textContent = t('ui.fileTooLarge', { n: maxMb });
+        errEl.style.display = 'block';
+        input.value = '';
+        return;
+      }
+      uploadedFiles[q.id] = file;
+      document.getElementById('uploadZone').style.display = 'none';
+      document.getElementById('uploadPreview').style.display = 'flex';
+      document.getElementById('uploadFileName').textContent = file.name;
+      document.getElementById('uploadFileSize').textContent = formatFileSize(file.size);
+      document.getElementById('validationError').style.display = 'none';
+    }
+
+    function removeUploadedFile() {
+      const q = questions[currentQuestionIndex];
+      delete uploadedFiles[q.id];
+      document.getElementById('fileInput').value = '';
+      document.getElementById('uploadZone').style.display = 'flex';
+      document.getElementById('uploadPreview').style.display = 'none';
+    }
+
+    // ─── Questionnaire ───────────────────────────────────────
+
+    function startQuestionnaire() {
+      currentQuestionIndex = 0;
+      answers = {};
+      multiAnswers = {};
+      uploadedFiles = {};
+      renderQuestion();
+      goTo('screenQuestionnaire');
+    }
+
+    function renderQuestion() {
+      const q = questions[currentQuestionIndex];
+      const total = questions.length;
+
+      document.getElementById('progressFill').style.width = `${((currentQuestionIndex) / total) * 100}%`;
+      const progLabel = document.getElementById('progressLabel');
+      progLabel.textContent = t('question.of', { a: currentQuestionIndex + 1, b: total });
+      progLabel.dataset.a = currentQuestionIndex + 1;
+      progLabel.dataset.b = total;
+      document.getElementById('sectionTag').textContent = q.section;
+      document.getElementById('questionText').textContent = q.text;
+
+      const helpEl = document.getElementById('helpText');
+      if (q.helpText) {
+        helpEl.textContent = q.helpText;
+        helpEl.style.display = 'block';
+      } else {
+        helpEl.style.display = 'none';
+      }
+
+      document.getElementById('validationError').style.display = 'none';
+      document.getElementById('backBtn').style.display = currentQuestionIndex === 0 ? 'none' : 'inline-flex';
+      document.getElementById('nextBtn').textContent =
+        currentQuestionIndex + 1 === total ? t('ui.reviewAnswers') : t('ui.continue');
+
+      const optionsList = document.getElementById('optionsList');
+      const textWrap = document.getElementById('textInputWrap');
+      const uploadWrap = document.getElementById('uploadWrap');
+      optionsList.innerHTML = '';
+
+      // Hide all input areas first
+      optionsList.style.display = 'none';
+      textWrap.style.display = 'none';
+      uploadWrap.style.display = 'none';
+
+      if (q.type === 'upload') {
+        uploadWrap.style.display = 'flex';
+        document.getElementById('fileInput').setAttribute('accept', q.accept || '.pdf,.jpg,.jpeg,.png');
+        document.getElementById('uploadHint').textContent =
+          `PDF, JPG, PNG · Max ${q.maxMb || 10} MB`;
+        document.querySelector('.kyc-upload__zone-label').textContent = t('ui.uploadZone');
+        const examplesEl = document.getElementById('uploadExamples');
+        if (q.examples) {
+          examplesEl.textContent = `${t('ui.uploadExamples')} ${q.examples}`;
+          examplesEl.style.display = 'block';
+        } else {
+          examplesEl.style.display = 'none';
+        }
+        // Show existing file if already uploaded
+        const existingFile = uploadedFiles[q.id];
+        if (existingFile) {
+          document.getElementById('uploadZone').style.display = 'none';
+          document.getElementById('uploadPreview').style.display = 'flex';
+          document.getElementById('uploadFileName').textContent = existingFile.name;
+          document.getElementById('uploadFileSize').textContent = formatFileSize(existingFile.size);
+        } else {
+          document.getElementById('uploadZone').style.display = 'flex';
+          document.getElementById('uploadPreview').style.display = 'none';
+        }
+        return;
+      }
+
+      if (q.type === 'text') {
+        textWrap.style.display = 'block';
+        const ta = document.getElementById('textAnswer');
+        ta.value = answers[q.id] || '';
+        ta.oninput = () => {
+          document.getElementById('charCount').textContent = `${ta.value.length} / 500`;
+        };
+      } else {
+        optionsList.style.display = 'flex';
+        textWrap.style.display = 'none';
+
+        q.options.forEach(opt => {
+          const li = document.createElement('li');
+          const btn = document.createElement('button');
+          btn.className = 'option-btn' +
+            (q.highRisk ? ' option-btn--high-risk' : '') +
+            (opt.highRisk ? ' option-btn--warn' : '');
+          btn.setAttribute('type', 'button');
+          btn.setAttribute('role', q.type === 'multi' ? 'checkbox' : 'radio');
+
+          const isSelected = q.type === 'multi'
+            ? (multiAnswers[q.id] || []).includes(opt.value)
+            : answers[q.id] === opt.value;
+
+          if (isSelected) btn.classList.add('option-btn--selected');
+
+          btn.innerHTML = `
+            <span class="opt-icon" aria-hidden="true">${isSelected ? (q.type === 'multi' ? '☑' : '●') : (q.type === 'multi' ? '☐' : '○')}</span>
+            <span class="opt-label">${opt.label}</span>
+            ${opt.highRisk ? '<span class="opt-badge">Requires Review</span>' : ''}
+          `;
+
+          btn.onclick = () => {
+            if (q.type === 'multi') {
+              if (!multiAnswers[q.id]) multiAnswers[q.id] = [];
+              const idx = multiAnswers[q.id].indexOf(opt.value);
+              if (idx > -1) multiAnswers[q.id].splice(idx, 1);
+              else multiAnswers[q.id].push(opt.value);
+              renderQuestion();
+            } else {
+              answers[q.id] = opt.value;
+              renderQuestion();
+            }
+          };
+
+          li.appendChild(btn);
+          optionsList.appendChild(li);
+        });
+      }
+    }
+
+    function nextQuestion() {
+      const q = questions[currentQuestionIndex];
+
+      if (q.type === 'upload') {
+        const file = uploadedFiles[q.id];
+        if (!file) {
+          const errEl = document.getElementById('validationError');
+          errEl.textContent = t('ui.uploadError');
+          errEl.style.display = 'block';
+          return;
+        }
+        answers[q.id] = file.name;
+      } else {
+        const val = q.type === 'multi' ? multiAnswers[q.id] : answers[q.id];
+        if (!val || (Array.isArray(val) && val.length === 0)) {
+          const errEl = document.getElementById('validationError');
+          errEl.textContent = t('ui.selectError');
+          errEl.style.display = 'block';
+          return;
+        }
+        if (q.type === 'text') {
+          answers[q.id] = document.getElementById('textAnswer').value.trim();
+        }
+      }
+
+      if (currentQuestionIndex + 1 >= questions.length) {
+        showReview();
+      } else {
+        currentQuestionIndex++;
+        renderQuestion();
+      }
+    }
+
+    function prevQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderQuestion();
+      }
+    }
+
+    // ─── Review ──────────────────────────────────────────────
+
+    function showReview() {
+      const list = document.getElementById('reviewList');
+      list.innerHTML = '';
+
+      questions.forEach((q, i) => {
+        let val;
+        if (q.type === 'upload') {
+          const file = uploadedFiles[q.id];
+          val = file ? `📄 ${file.name}` : (answers[q.id] ? `📄 ${answers[q.id]}` : '—');
+        } else if (q.type === 'multi') {
+          val = (multiAnswers[q.id] || []).map(v => q.options.find(o => o.value === v)?.label || v).join(', ') || '—';
+        } else {
+          val = q.options?.find(o => o.value === answers[q.id])?.label || answers[q.id] || '—';
+        }
+
+        const li = document.createElement('li');
+        li.className = 'review-item';
+        li.innerHTML = `
+          <div class="review-item__q">${q.text}</div>
+          <div class="review-item__a">${val}</div>
+          <button class="review-item__edit" onclick="editQuestion(${i})" type="button" aria-label="Edit">Edit</button>
+        `;
+        list.appendChild(li);
+      });
+
+      document.getElementById('declarationCheck').checked = false;
+      document.getElementById('submitBtn').disabled = true;
+      goTo('screenReview');
+    }
+
+    function editQuestion(index) {
+      currentQuestionIndex = index;
+      renderQuestion();
+      goTo('screenQuestionnaire');
+    }
+
+    function toggleSubmit(checkbox) {
+      document.getElementById('submitBtn').disabled = !checkbox.checked;
+    }
+
+    // ─── Submission ──────────────────────────────────────────
+
+    function submitKyc() {
+      goTo('screenProcessing');
+      animateProcessingSteps(() => {
+        setTimeout(() => {
+          const isHighRisk = currentRiskFlow === 'high';
+          const hasPep = answers['Q_PEP_STATUS'] === 'YES';
+          const showException = isHighRisk || hasPep;
+
+          const now = new Date();
+          document.getElementById('completedAt').textContent = now.toLocaleString();
+          document.getElementById('nextReview').textContent = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toLocaleDateString();
+          document.getElementById('refNumber').textContent = `KYC-${now.getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+          goTo(showException ? 'screenException' : 'screenSuccess');
+        }, 500);
+      });
+    }
+
+    function animateProcessingSteps(callback) {
+      const steps = ['step1', 'step2', 'step3'];
+      const icons = ['✅', '✅', '✅'];
+      steps.forEach((id, i) => {
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          el.querySelector('.step-icon').textContent = icons[i];
+          el.classList.add('done');
+          if (i === steps.length - 1) callback();
+        }, 600 * (i + 1));
+      });
+    }
+
+    function goToBanking() {
+      alert('Returning to online banking portal...');
+    }
+
+    // ─── Demo Controls ────────────────────────────────────────
+
+    function demoFlow(type) {
+      currentRiskFlow = type;
+      answers = {};
+      multiAnswers = {};
+      uploadedFiles = {};
+      currentQuestionIndex = 0;
+
+      const riskBadge = document.getElementById('riskBadge');
+      const nameEl = document.getElementById('customerName');
+
+      if (type === 'reset') {
+        riskBadge.textContent = 'Low Risk';
+        riskBadge.className = 'app-header__badge badge--green';
+        questions = (currentLang === 'he' ? QUESTION_SETS_HE : QUESTION_SETS).low;
+        nameEl.textContent = 'David Cohen';
+        goTo('screenLanguage');
+        return;
+      }
+
+      const configs = {
+        low: { label: 'Low Risk', badgeClass: 'badge--green', name: 'David Cohen', qs: 'low' },
+        medium: { label: 'Medium Risk', badgeClass: 'badge--amber', name: 'Sara Levi', qs: 'medium' },
+        high: { label: 'High Risk', badgeClass: 'badge--red', name: 'Alex Shapiro', qs: 'high' }
+      };
+      const cfg = configs[type];
+      riskBadge.textContent = cfg.label;
+      riskBadge.className = `app-header__badge ${cfg.badgeClass}`;
+      nameEl.textContent = cfg.name;
+      questions = (currentLang === 'he' ? QUESTION_SETS_HE : QUESTION_SETS)[cfg.qs];
+      goTo('screenNotification');
+    }
+
+    // Init – start on language screen; demo buttons will call demoFlow which sets questions then lands on notification
+    questions = QUESTION_SETS.low;
+  </script>
+</body>
+</html>
