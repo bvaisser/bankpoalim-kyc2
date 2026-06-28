@@ -1,4 +1,4 @@
-# KYC System – Bank Poalim
+# KYC System
 
 A bank-grade Know Your Customer (KYC) platform compliant with AML/CFT, FATCA, CRS, and PEP regulations. Built with TypeScript (React frontend + Node.js/Express backend) and a standalone HTML/JS operations dashboard.
 
